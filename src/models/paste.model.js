@@ -63,29 +63,6 @@ class Paste {
 
         return { month, ...stats[0] };
     }
-
-    static async getLast5MonthsStats() {
-        const [stats] = await db.query(`
-            WITH RECURSIVE months AS (
-                SELECT DATE_FORMAT(NOW(), '%Y-%m') as month
-                UNION ALL
-                SELECT DATE_FORMAT(DATE_SUB(STR_TO_DATE(month, '%Y-%m'), INTERVAL 1 MONTH), '%Y-%m')
-                FROM months
-                WHERE month > DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 4 MONTH), '%Y-%m')
-            )
-            SELECT 
-                m.month,
-                COALESCE(COUNT(p.id), 0) as totalPastes,
-                COALESCE(SUM(p.views), 0) as totalViews,
-                COALESCE(SUM(CASE WHEN p.expires_at IS NULL OR p.expires_at > NOW() THEN 1 ELSE 0 END), 0) as activePastes,
-                COALESCE(SUM(CASE WHEN p.expires_at IS NOT NULL AND p.expires_at <= NOW() THEN 1 ELSE 0 END), 0) as expiredPastes
-            FROM months m
-            LEFT JOIN pastes p ON DATE_FORMAT(p.created_at, '%Y-%m') = m.month
-            GROUP BY m.month
-            ORDER BY m.month ASC;
-        `);
-        return stats;
-    }
 }
 
 module.exports = Paste; 

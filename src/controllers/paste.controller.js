@@ -71,17 +71,12 @@ class PasteController {
                 throw new Error('Invalid month format. Use YYYY-MM');
             }
 
-            const [stats, chartData] = await Promise.all([
-                pasteService.getMonthlyStats(month),
-                pasteService.getLast5MonthsStats()
-            ]);
-
-            res.render('stats', { stats, chartData, error: null });
+            const stats = await pasteService.getMonthlyStats(month);
+            res.render('stats', { stats, error: null });
         } catch (error) {
             console.error('Error fetching monthly stats:', error);
             res.render('stats', {
                 stats: null,
-                chartData: null,
                 error: error.message || 'Failed to fetch statistics'
             });
         }
