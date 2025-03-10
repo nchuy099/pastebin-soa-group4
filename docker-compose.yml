@@ -4,14 +4,9 @@ services:
   app:
     build: .
     ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=development
-      - PORT=3000
-      - DB_HOST=mysql
-      - DB_USER=root
-      - DB_PASSWORD=pastebin123
-      - DB_NAME=pastebin
+      - "${PORT}:${PORT}"
+    env_file:
+      - .env
     depends_on:
       - mysql
     volumes:
@@ -24,8 +19,8 @@ services:
     ports:
       - "3307:3306"
     environment:
-      - MYSQL_ROOT_PASSWORD=pastebin123
-      - MYSQL_DATABASE=pastebin
+      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
+      - MYSQL_DATABASE=${DB_NAME}
     volumes:
       - mysql_data:/var/lib/mysql
       - ./src/database/schema.sql:/docker-entrypoint-initdb.d/schema.sql

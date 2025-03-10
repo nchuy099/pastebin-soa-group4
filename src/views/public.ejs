@@ -30,10 +30,15 @@
                     </div>
                     <div class="card-footer">
                         <div class="d-flex justify-content-between align-items-center">
-                            <small>Created: <%= new Date(paste.created_at).toLocaleString() %></small>
+                            <small>Created: <%= new Date(paste.created_at).toLocaleString('en-US', {
+                                    timeZone: 'Asia/Ho_Chi_Minh' , dateStyle: 'medium' , timeStyle: 'medium' }) %>
+                            </small>
                             <div>
                                 <span class="badge bg-secondary me-2">Views: <%= paste.views %></span>
-                                <a href="/paste/<%= paste.id %>" class="btn btn-sm btn-primary">View Full</a>
+                                <% if (paste.status==='expired' ) { %>
+                                    <span class="badge bg-danger me-2">Expired</span>
+                                    <% } %>
+                                        <a href="/paste/<%= paste.id %>" class="btn btn-sm btn-primary">View Full</a>
                             </div>
                         </div>
                     </div>
