@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - DB_HOST=mysql
+      - DB_USER=root
+      - DB_PASSWORD=pastebin123
+      - DB_NAME=pastebin
+    depends_on:
+      - mysql
+    volumes:
+      - ./src:/app/src
+      - /app/node_modules
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3307:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=pastebin123
+      - MYSQL_DATABASE=pastebin
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./src/database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
