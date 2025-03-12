@@ -1,5 +1,11 @@
 # Pastebin Clone
 
+SOA project - group 4:
+- Nguyễn Chí Huy
+- Trần Quang Huy
+- Bùi Đức Huy
+- Nguyễn Đức Thành
+
 ## Install
 
 1. Create .env file:
