@@ -4,9 +4,9 @@ import string
 from bs4 import BeautifulSoup
 
 class PastebinUser(HttpUser):
-    wait_time = between(1, 5)  # Thời gian chờ giữa các task (1-5 giây)
-    host = "http://localhost:3000"  # Địa chỉ ứng dụng pastebin
-    paste_ids = []  # Lưu trữ danh sách ID paste // nen clear volume cua pastebin truoc khi test
+    wait_time = between(1, 5)
+    host = "http://localhost:3000"
+    paste_ids = []
 
     def on_start(self):
         """Chạy khi mỗi user bắt đầu"""
