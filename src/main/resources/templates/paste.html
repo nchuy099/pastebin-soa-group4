@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title th:text="'Paste - ' + ${paste.id}">Paste</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+</head>
+
+<body class="container mt-5">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+                <h2 class="mb-0" th:text="${paste.title}">Title</h2>
+                <button class="btn btn-outline-primary btn-sm" type="button" id="copyButton" onclick="copyPasteUrl()">
+                    <i class="bi bi-clipboard"></i> Copy URL
+                </button>
+            </div>
+            <span class="badge bg-primary" th:text="${paste.language}">Language</span>
+        </div>
+        <div class="card-body">
+            <pre><code th:class="'language-' + ${paste.language}" th:text="${paste.content}">Content</code></pre>
+        </div>
+        <div class="card-footer">
+            <div class="row">
+                <div class="col">
+                    <strong>Created:</strong>
+                    <span th:text="${#dates.format(paste.createdAt, 'MMM dd, yyyy hh:mm:ss a')}">Created Date</span>
+                </div>
+                <div class="col">
+                    <strong>Expires:</strong>
+                    <span th:if="${paste.expiresAt != null}"
+                        th:text="${#dates.format(paste.expiresAt, 'MMM dd, yyyy hh:mm:ss a')}">Expiry Date</span>
+                    <span th:if="${paste.status == 'EXPIRED'}" class="badge bg-danger ms-1">Expired</span>
+                    <span th:if="${paste.expiresAt == null}">Never</span>
+                </div>
+                <div class="col">
+                    <strong>Views:</strong>
+                    <span th:text="${paste.views}">0</span>
+                </div>
+                <div class="col">
+                    <strong>Visibility:</strong>
+                    <span th:switch="${paste.visibility}">
+                        <span th:case="'PUBLIC'">Public</span>
+                        <span th:case="'UNLISTED'">Unlisted</span>
+                        <span th:case="*" th:text="${paste.visibility}">Unknown</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="mt-3">
+        <a href="/" class="btn btn-primary">Create New Paste</a>
+        <a href="/public" class="btn btn-secondary">View Public Pastes</a>
+        <a href="/stats" class="btn btn-info">View Statistics</a>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-java.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-cpp.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-sql.min.js"></script>
+
+    <script th:inline="javascript">
+        function copyPasteUrl() {
+            const copyButton = document.getElementById('copyButton');
+            const url = window.location.origin + '/paste/' + [[${ paste.id }]];
+
+            navigator.clipboard.writeText(url).then(() => {
+                copyButton.innerHTML = '<i class="bi bi-clipboard-check"></i> Copied!';
+                copyButton.classList.remove('btn-outline-primary');
+                copyButton.classList.add('btn-success');
+                setTimeout(() => {
+                    copyButton.innerHTML = '<i class="bi bi-clipboard"></i> Copy URL';
+                    copyButton.classList.remove('btn-success');
+                    copyButton.classList.add('btn-outline-primary');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+                copyButton.innerHTML = '<i class="bi bi-clipboard-x"></i> Failed';
+                copyButton.classList.remove('btn-outline-primary');
+                copyButton.classList.add('btn-danger');
+                setTimeout(() => {
+                    copyButton.innerHTML = '<i class="bi bi-clipboard"></i> Copy URL';
+                    copyButton.classList.remove('btn-danger');
+                    copyButton.classList.add('btn-outline-primary');
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+
+</html>
