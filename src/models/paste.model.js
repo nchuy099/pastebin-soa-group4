@@ -3,46 +3,66 @@ const { nanoid } = require('nanoid');
 
 class Paste {
     static async create({ content, title, language, expiresIn, visibility }) {
-        const id = nanoid(8);
+        let id;
+        let isUnique = false;
+        let attempts = 0;
+        const maxAttempts = 5; // Prevent infinite loop
+
+        while (!isUnique && attempts < maxAttempts) {
+            id = nanoid(8);
+            // Check if ID already exists
+            const [existing] = await db.query('SELECT id FROM pastes WHERE id = ?', [id]);
+            if (existing.length === 0) {
+                isUnique = true;
+            } else {
+                attempts++;
+            }
+        }
+
+        if (!isUnique) {
+            throw new Error('Failed to generate unique ID after multiple attempts');
+        }
+
         let expiresAt = null;
         if (expiresIn && !isNaN(expiresIn)) {
             expiresAt = new Date(Date.now() + expiresIn * 60 * 1000);
         }
 
-        const [result] = await db.query(
+        await db.query(
             'INSERT INTO pastes (id, content, title, language, expires_at, visibility) VALUES (?, ?, ?, ?, ?, ?)',
             [id, content, title || 'Untitled', language || 'text', expiresAt, visibility || 'public']
         );
 
-        return { id, ...result };
+        return { id };
     }
 
     static async getById(id) {
         // Get the paste
         const [pastes] = await db.query(
-            'SELECT *, (CASE WHEN expires_at IS NOT NULL AND expires_at <= NOW() THEN "expired" ELSE "active" END) as status FROM pastes WHERE id = ?',
+            'SELECT id, content, title, language, created_at, expires_at, views, visibility, status FROM pastes WHERE id = ?',
             [id]
         );
 
         if (pastes.length === 0) {
-            throw new Error('Paste not found');
+            return { status: 'not_found' };
         }
 
         // Check if paste is expired
         if (pastes[0].expires_at && new Date(pastes[0].expires_at) <= new Date()) {
-            throw new Error('This paste has expired and is no longer accessible');
+            return { status: 'expired', paste: pastes[0] };
         }
 
         // Increment views for active paste
         await db.query('UPDATE pastes SET views = views + 1 WHERE id = ?', [id]);
 
-        return pastes[0];
+        return { status: 'active', paste: pastes[0] };
     }
 
     static async getPublic() {
         // Get only non-expired public pastes
         const [pastes] = await db.query(
-            'SELECT *, (CASE WHEN expires_at IS NOT NULL AND expires_at <= NOW() THEN "expired" ELSE "active" END) as status FROM pastes WHERE visibility = "public" AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY created_at DESC LIMIT 10'
+            'SELECT id, content, title, language, created_at, expires_at, views, visibility FROM pastes WHERE visibility = ? AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY created_at DESC LIMIT 10',
+            ['public']
         );
         return pastes;
     }

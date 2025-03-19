@@ -1,6 +1,6 @@
 const mysql = require('mysql2/promise');
 
-const pool = mysql.createPool({
+const dbConfig = {
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
@@ -8,6 +8,8 @@ const pool = mysql.createPool({
     waitForConnections: true,
     connectionLimit: 10,  // Reduce to prevent CPU overhead
     queueLimit: 30        // Control how many requests are queued
-});
+};
 
-module.exports = pool;
+const pool = mysql.createPool(dbConfig);
+
+module.exports = pool; 
