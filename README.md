@@ -16,3 +16,14 @@ cp .env.example .env
 ```bash
 docker-compose up
 ```
+
+### Use
+
+1. Pastebin website
+```bash
+http://localhost:3000
+```
+2. Locust Testing
+```bash
+http://localhost:8089
+```
