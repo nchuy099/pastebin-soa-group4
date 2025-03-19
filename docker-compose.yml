@@ -9,9 +9,6 @@ services:
       - .env
     depends_on:
       - mysql
-    volumes:
-      - ./src:/app/src
-      - /app/node_modules
     restart: unless-stopped
 
   mysql:
@@ -23,8 +20,26 @@ services:
       - MYSQL_DATABASE=${DB_NAME}
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./src/database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      - ./db_configs/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      - ./db_configs/mysql.cnf:/etc/mysql/conf.d/mysql.cnf
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
     restart: unless-stopped
+
+  locust:
+    build: ./locust
+    ports:
+      - "8089:8089"
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - TARGET_HOST=http://app:${PORT}
+    depends_on:
+      - app
+      - mysql
+    command: [ "locust", "-f", "locustfile.py", "--host=http://app:${PORT}" ]
 
 volumes:
   mysql_data:

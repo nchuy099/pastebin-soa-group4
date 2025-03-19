@@ -1,0 +1,6 @@
+[mysqld]
+max_connections=500
+innodb_buffer_pool_size=512M
+innodb_redo_log_capacity=256M
+innodb_flush_log_at_trx_commit=2
+host_cache_size=0

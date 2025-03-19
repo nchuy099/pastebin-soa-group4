@@ -1,86 +1,102 @@
 const pasteService = require('../services/paste.service');
 
-class PasteController {
-    async createPaste(req, res) {
-        try {
-            const { content, title, language, expires_in: expiresIn, visibility } = req.body;
+const createPaste = async (req, res) => {
+    try {
+        const { content, title, language, expires_in: expiresIn, visibility } = req.body;
 
-            if (!content) {
-                return res.render('index', { error: 'Content is required' });
-            }
-
-            const result = await pasteService.createPaste({
-                content,
-                title,
-                language,
-                expiresIn,
-                visibility
-            });
-
-            res.redirect(`/paste/${result.id}`);
-        } catch (error) {
-            console.error('Error creating paste:', error);
-            res.render('index', { error: 'Failed to create paste' });
+        if (!content) {
+            return res.render('index', { error: 'Content is required' });
         }
-    }
 
-    async getPaste(req, res) {
-        try {
-            const paste = await pasteService.getPasteById(req.params.id);
-            res.render('paste', { paste });
-        } catch (error) {
-            console.error('Error retrieving paste:', error);
-            const status = error.message.includes('expired') ? 403 :
-                error.message.includes('not found') ? 404 : 500;
-            const template = status === 403 ? 'expired' : 'index';
-            res.status(status).render(template, {
-                error: error.message,
+        const result = await pasteService.createPaste({
+            content,
+            title,
+            language,
+            expiresIn,
+            visibility
+        });
+
+        res.redirect(`/paste/${result.id}`);
+    } catch (error) {
+        console.error('Error creating paste:', error);
+        res.render('index', { error: 'Failed to create paste' });
+    }
+};
+
+const getPaste = async (req, res) => {
+    try {
+        const result = await pasteService.getPasteById(req.params.id);
+
+        if (result.status === 'not_found') {
+            return res.status(404).render('index', {
+                error: 'Paste not found',
                 pasteId: req.params.id
             });
         }
-    }
 
-    async getPublicPastes(req, res) {
-        try {
-            const pastes = await pasteService.getPublicPastes();
-            res.render('public', { pastes });
-        } catch (error) {
-            console.error('Error fetching public pastes:', error);
-            res.render('public', { pastes: [], error: 'Failed to fetch public pastes' });
-        }
-    }
-
-    showCreateForm(req, res) {
-        res.render('index', { error: null });
-    }
-
-    async getMonthlyStats(req, res) {
-        try {
-            let month = req.params.month;
-
-            // If no month provided, use current month
-            if (!month) {
-                const now = new Date();
-                const year = now.getFullYear();
-                const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
-                month = `${year}-${currentMonth}`;
-            }
-
-            // Validate month format (YYYY-MM)
-            if (!/^\d{4}-\d{2}$/.test(month)) {
-                throw new Error('Invalid month format. Use YYYY-MM');
-            }
-
-            const stats = await pasteService.getMonthlyStats(month);
-            res.render('stats', { stats, error: null });
-        } catch (error) {
-            console.error('Error fetching monthly stats:', error);
-            res.render('stats', {
-                stats: null,
-                error: error.message || 'Failed to fetch statistics'
+        if (result.status === 'expired') {
+            return res.status(403).render('expired', {
+                error: 'This paste has expired and is no longer accessible',
+                pasteId: req.params.id
             });
         }
-    }
-}
 
-module.exports = new PasteController(); 
+        res.render('paste', { paste: result.paste });
+    } catch (error) {
+        console.error('Error retrieving paste:', error);
+        res.status(500).render('index', {
+            error: 'Failed to retrieve paste',
+            pasteId: req.params.id
+        });
+    }
+};
+
+const getPublicPastes = async (req, res) => {
+    try {
+        const pastes = await pasteService.getPublicPastes();
+        res.render('public', { pastes });
+    } catch (error) {
+        console.error('Error fetching public pastes:', error);
+        res.render('public', { pastes: [], error: 'Failed to fetch public pastes' });
+    }
+};
+
+const showCreateForm = (req, res) => {
+    res.render('index', { error: null });
+};
+
+const getMonthlyStats = async (req, res) => {
+    try {
+        let month = req.params.month;
+
+        // If no month provided, use current month
+        if (!month) {
+            const now = new Date();
+            const year = now.getFullYear();
+            const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+            month = `${year}-${currentMonth}`;
+        }
+
+        // Validate month format (YYYY-MM)
+        if (!/^\d{4}-\d{2}$/.test(month)) {
+            throw new Error('Invalid month format. Use YYYY-MM');
+        }
+
+        const stats = await pasteService.getMonthlyStats(month);
+        res.render('stats', { stats, error: null });
+    } catch (error) {
+        console.error('Error fetching monthly stats:', error);
+        res.render('stats', {
+            stats: null,
+            error: error.message || 'Failed to fetch statistics'
+        });
+    }
+};
+
+module.exports = {
+    createPaste,
+    getPaste,
+    getPublicPastes,
+    showCreateForm,
+    getMonthlyStats
+}; 
