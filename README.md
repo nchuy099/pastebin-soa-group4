@@ -17,7 +17,7 @@ cp .env.example .env
 docker-compose up
 ```
 
-### Use
+## Usage
 
 1. Pastebin website
 ```bash
