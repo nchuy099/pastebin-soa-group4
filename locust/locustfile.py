@@ -82,9 +82,7 @@ class PastebinUser(HttpUser):
     def view_public_pastes(self):
         """Simulate viewing the public pastes list"""
         response = self.client.get("/public")
-        if response.status_code == 200:
-            self.update_paste_ids()  # Refresh IDs from DB
-        else:
+        if response.status_code != 200:
             print(f"Failed to load public pastes: {response.status_code}")
 
     @task(1)
