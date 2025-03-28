@@ -1,3 +1,0 @@
-locust==2.33.2
-mysql-connector-python==8.0.33
-beautifulsoup4==4.12.3

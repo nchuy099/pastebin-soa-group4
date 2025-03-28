@@ -1,0 +1,17 @@
+spring:
+  config:
+    activate:
+      on-profile: docker
+  devtools:
+    add-properties: true
+  datasource:
+    url: jdbc:mysql://mysql:3306/pastebin
+    username: mysql
+    password: password
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+    show-sql: true  #log sql query
+    hibernate:
+      ddl-auto: none # or none

@@ -1,0 +1,27 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: pastebin-soa
+    version: 1.0.0
+  profiles:
+    active: @spring.profiles.active@
+  jackson:
+    time-zone: Asia/Ho_Chi_Minh
+  jpa:
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: Asia/Ho_Chi_Minh
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+
+logging:
+  level:
+    root: INFO
+    web: INFO

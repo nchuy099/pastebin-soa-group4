@@ -6,24 +6,8 @@ SOA project - group 4:
 - Bùi Đức Huy
 - Nguyễn Đức Thành
 
-## Install
+## Run
 
-1. Create .env file:
 ```bash
-cp .env.example .env
-```
-2. Run:
-```bash
-docker-compose up
-```
-
-## Usage
-
-1. Pastebin website
-```bash
-http://localhost:3000
-```
-2. Locust Testing
-```bash
-http://localhost:8089
+docker-compose up --build
 ```
