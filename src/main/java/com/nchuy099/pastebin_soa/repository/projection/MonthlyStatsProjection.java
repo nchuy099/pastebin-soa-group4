@@ -1,4 +1,4 @@
-package com.nchuy099.pastebin_soa.dto.projection;
+package com.nchuy099.pastebin_soa.repository.projection;
 
 public interface MonthlyStatsProjection {
         Long getTotalPastes();
