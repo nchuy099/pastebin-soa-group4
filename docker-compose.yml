@@ -1,29 +1,29 @@
 version: '3.8'
 
 services:
-  public-service:
-    build:
-      context: ./
-      dockerfile: Dockerfile
-    env_file: .env
+  paste-create-service:
+    build: .
     ports:
-      - "3002:3001"  # Expose internally; Nginx will proxy to this service.
-    networks:
-      - pastebin-network
-    restart: unless-stopped
-
-  nginx-proxy:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx/pastebin.conf:/etc/nginx/conf.d/default.conf
-    networks:
-      - pastebin-network
+      - "8081:8081"
     depends_on:
-      - public-service
-    restart: unless-stopped
+      - mysql
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/paste_db
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+    restart: always
 
-networks:
-  pastebin-network:
-    external: true
+  mysql:
+    image: mysql:8
+    container_name: paste-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: paste_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: always
+
+volumes:
+  mysql_data:
