@@ -1,7 +1,13 @@
+version: '3.8'
+
 services:
   public-service:
-    build: .
+    build:
+      context: ./
+      dockerfile: Dockerfile
     env_file: .env
+    ports:
+      - "3002:3001"  # Expose internally; Nginx will proxy to this service.
     networks:
       - pastebin-network
     restart: unless-stopped
@@ -16,6 +22,7 @@ services:
       - pastebin-network
     depends_on:
       - public-service
+    restart: unless-stopped
 
 networks:
   pastebin-network:
