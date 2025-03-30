@@ -1,0 +1,22 @@
+services:
+  public-service:
+    build: .
+    env_file: .env
+    networks:
+      - pastebin-network
+    restart: unless-stopped
+
+  nginx-proxy:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/pastebin.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - pastebin-network
+    depends_on:
+      - public-service
+
+networks:
+  pastebin-network:
+    external: true
