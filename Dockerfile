@@ -1,20 +1,33 @@
-# Stage 1: Build JAR with Maven
-FROM maven:3.8.3-amazoncorretto-17 AS builder
-WORKDIR /app
-COPY pom.xml .
-RUN mvn dependency:go-offline
-COPY src ./src
-RUN mvn clean package -DskipTests
+# Use a minimal base image
+FROM golang:1.24-alpine AS builder
 
-# Stage 2: Build image
-FROM amazoncorretto:17-alpine
+# Set working directory
 WORKDIR /app
-# Set timezone
-ENV TZ=Asia/Ho_Chi_Minh
-RUN apk add --no-cache tzdata && \
-    cp /usr/share/zoneinfo/$TZ /etc/localtime && \
-    echo $TZ > /etc/timezone && \
-    apk del tzdata
-COPY --from=builder /app/target/pastebin-soa.jar pastebin-soa.jar
-ENTRYPOINT ["java", "-jar", "pastebin-soa.jar"]
+
+# Copy go.mod and go.sum first, then download dependencies
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy the source code
+COPY . .
+
+# Build the Go binary
+RUN go build -o main ./main.go
+
+# Final stage: Use a small image to run the app
+FROM alpine:latest
+
+# Set working directory
+WORKDIR /app
+
+# Copy the built binary from builder
+COPY --from=builder /app/main .
+
+# Copy the config files if needed
+COPY .env ./
+
+# Expose the application's port
 EXPOSE 8080
+
+# Run the application
+CMD ["./main"]
