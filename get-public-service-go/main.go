@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"os"
 
-	"get-paste-service/config"
-	"get-paste-service/db"
-	"get-paste-service/router"
+	"get-public-service/config"
+	"get-public-service/db"
+	"get-public-service/router"
 )
 
 func main() {
@@ -21,6 +21,6 @@ func main() {
 
 	r := router.SetupRouter()
 
-	log.Printf("Server started at :%s", port)
+	log.Printf("Get Public Service started at :%s", port)
 	log.Fatal(http.ListenAndServe(":"+port, r))
 }

@@ -1,15 +1,19 @@
 package router
 
 import (
-	"github.com/julienschmidt/httprouter"
 	"net/http"
-	"get-paste-service/handler"
+
+	"create-paste-service-go/handler"
+
+	"github.com/julienschmidt/httprouter"
 )
 
+// SetupRouter configures all the routes for the application
 func SetupRouter() *httprouter.Router {
 	router := httprouter.New()
 
-	router.GET("/paste/:id", handler.GetPasteHandler)
+	// Paste creation endpoint
+	router.POST("/api/paste", handler.CreatePaste)
 
 	// Health check
 	router.GET("/health", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

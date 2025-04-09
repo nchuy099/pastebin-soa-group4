@@ -12,3 +12,10 @@ type Paste struct {
 	Views      int        `json:"views"`
 	Visibility string     `json:"visibility"`
 }
+
+// ResponseData represents a standard API response format
+type ResponseData struct {
+	Status  int         `json:"status"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data,omitempty"`
+}

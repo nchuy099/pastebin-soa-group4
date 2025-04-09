@@ -1,0 +1,91 @@
+services:
+
+  create-paste-service:
+    build:
+      context: ./create-paste-service-go
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=mysql
+      - DB_PASS=password
+      - DB_NAME=pastebin
+      - PORT=8081
+    depends_on:
+      db:
+        condition: service_healthy
+
+  get-paste-service:
+    build:
+      context: ./get-paste-service-go
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8082"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=mysql
+      - DB_PASS=password
+      - DB_NAME=pastebin
+      - PORT=8082
+    depends_on:
+      db:
+        condition: service_healthy
+
+  get-public-service:
+    build:
+      context: ./get-public-service-go
+      dockerfile: Dockerfile
+    ports:
+      - "8083:8083"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=mysql
+      - DB_PASS=password
+      - DB_NAME=pastebin
+      - PORT=8083
+    depends_on:
+      db:
+        condition: service_healthy
+
+  get-stats-service:
+    build:
+      context: ./get-stats-service-go
+      dockerfile: Dockerfile
+    ports:
+      - "8084:8084"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=mysql
+      - DB_PASS=password
+      - DB_NAME=pastebin
+      - PORT=8084
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mysql:8.0
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: pastebin
+      MYSQL_USER: mysql
+      MYSQL_PASSWORD: password
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./pastebin_db.sql:/docker-entrypoint-initdb.d/pastebin_db.sql
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-ppassword" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  mysql_data:
