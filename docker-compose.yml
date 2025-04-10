@@ -68,6 +68,20 @@ services:
       db:
         condition: service_healthy
 
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - create-paste-service
+      - get-paste-service
+      - get-public-service
+      - get-stats-service
+    restart: unless-stopped
+
   db:
     image: mysql:8.0
     ports:
