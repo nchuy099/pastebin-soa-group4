@@ -4,7 +4,6 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- Add Spring Boot Parent -->
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
@@ -26,20 +25,20 @@
     </properties>
 
     <dependencies>
-        <!-- JPA -->
+        <!-- Spring Boot Starter for JPA (includes Hibernate) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
 
-        <!-- MySQL -->
+        <!-- MySQL Driver -->
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
-            <version>${mysql.version}</version>
+            <scope>runtime</scope>
         </dependency>
 
-        <!-- Thymeleaf -->
+        <!-- Thymeleaf (Optional, remove if not needed) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-thymeleaf</artifactId>
@@ -58,19 +57,6 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Spring Boot Data JPA -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
-
-        <!-- MySQL Driver -->
-        <dependency>
-            <groupId>com.mysql</groupId>
-            <artifactId>mysql-connector-j</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-
         <!-- Lombok (Optional) -->
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -84,8 +70,11 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>com.tony.pastecreate.PasteCreateServiceApplication</mainClass>
+                </configuration>
             </plugin>
         </plugins>
-        <finalName>pastebin-soa</finalName>
+        <finalName>paste-create-service</finalName>
     </build>
 </project>

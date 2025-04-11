@@ -1,9 +1,9 @@
 package com.tony.pastecreate.model;
 
-import jakarta.persistence.*;
+import javax.persistence.*; // Use javax.persistence instead of jakarta.persistence
 
 @Entity
-@Table(name = "paste")
+@Table(name = "pastes")
 public class PasteEntity {
 
     @Id
@@ -13,5 +13,31 @@ public class PasteEntity {
     @Column(nullable = false)
     private String content;
 
-    // Getters and setters (or use Lombok's @Data)
+    @Column(nullable = false)
+    private String title;
+
+    // Getters and setters
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
 }

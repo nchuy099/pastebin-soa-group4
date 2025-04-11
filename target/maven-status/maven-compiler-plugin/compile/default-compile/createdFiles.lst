@@ -1,0 +1,5 @@
+com/tony/pastecreate/repository/PasteRepository.class
+com/tony/pastecreate/PasteCreateServiceApplication.class
+com/tony/pastecreate/service/PasteCreateService.class
+com/tony/pastecreate/model/PasteEntity.class
+com/tony/pastecreate/controller/PasteCreateController.class
