@@ -9,7 +9,7 @@
 <body class="container mt-5">
     <h1>Create a Paste</h1>
     <% if (error) { %>
-        <div class="alert alert-danger">
+        <div class="alert alert-danger" id="error">
             <%= error %>
         </div>
         <% } %>
@@ -42,14 +42,13 @@
                             <option value="1440">1 day</option>
                             <option value="10080">1 week</option>
                             <option value="43200">1 month</option>
-                            <option value="525600">1 year</option>
                         </select>
                     </div>
                     <div class="col">
                         <label class="form-label">Visibility:</label>
                         <select name="visibility" class="form-select">
-                            <option value="public">Public</option>
-                            <option value="unlisted">Unlisted</option>
+                            <option value="PUBLIC">Public</option>
+                            <option value="UNLISTED">Unlisted</option>
                         </select>
                     </div>
                 </div>

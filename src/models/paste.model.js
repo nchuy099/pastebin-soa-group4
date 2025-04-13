@@ -11,7 +11,7 @@ class Paste {
         while (!isUnique && attempts < maxAttempts) {
             id = nanoid(8);
             // Check if ID already exists
-            const [existing] = await db.query('SELECT id FROM pastes WHERE id = ?', [id]);
+            const [existing] = await db.query('SELECT id FROM paste WHERE id = ?', [id]);
             if (existing.length === 0) {
                 isUnique = true;
             } else {
@@ -29,8 +29,8 @@ class Paste {
         }
 
         await db.query(
-            'INSERT INTO pastes (id, content, title, language, expires_at, visibility) VALUES (?, ?, ?, ?, ?, ?)',
-            [id, content, title || 'Untitled', language || 'text', expiresAt, visibility || 'public']
+            'INSERT INTO paste (id, content, title, language, expires_at, visibility) VALUES (?, ?, ?, ?, ?, ?)',
+            [id, content, title || 'Untitled', language || 'text', expiresAt, visibility || 'PUBLIC']
         );
 
         return { id };
@@ -39,32 +39,48 @@ class Paste {
     static async getById(id) {
         // Get the paste
         const [pastes] = await db.query(
-            'SELECT id, content, title, language, created_at, expires_at, views, visibility, status FROM pastes WHERE id = ?',
+            'SELECT id, content, title, language, created_at, expires_at, views, visibility FROM paste WHERE id = ?',
             [id]
         );
 
-        if (pastes.length === 0) {
+        if (pastes.length === 0 || pastes[0].expires_at && new Date(pastes[0].expires_at) <= new Date()) {
             return { status: 'not_found' };
         }
 
-        // Check if paste is expired
-        if (pastes[0].expires_at && new Date(pastes[0].expires_at) <= new Date()) {
-            return { status: 'expired', paste: pastes[0] };
-        }
-
         // Increment views for active paste
-        await db.query('UPDATE pastes SET views = views + 1 WHERE id = ?', [id]);
+        await db.query('UPDATE paste SET views = views + 1 WHERE id = ?', [id]);
 
         return { status: 'active', paste: pastes[0] };
     }
 
-    static async getPublic() {
-        // Get only non-expired public pastes
+    static async getPublic(page = 1, limit = 5) {
+        // Get only non-expired public pastes with pagination
+        const offset = (page - 1) * limit;
+
+        // Get pastes with pagination
         const [pastes] = await db.query(
-            'SELECT id, content, title, language, created_at, expires_at, views, visibility FROM pastes WHERE visibility = ? AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY created_at DESC LIMIT 10',
+            'SELECT id, title, language, created_at FROM paste WHERE visibility = ? AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY created_at DESC LIMIT ? OFFSET ?',
+            ['public', limit, offset]
+        );
+
+        // Get total count for pagination
+        const [countResult] = await db.query(
+            'SELECT COUNT(*) as total FROM paste WHERE visibility = ? AND (expires_at IS NULL OR expires_at > NOW())',
             ['public']
         );
-        return pastes;
+
+        const totalPastes = countResult[0].total;
+        const totalPages = Math.ceil(totalPastes / limit);
+
+        return {
+            pastes: pastes,
+            pagination: {
+                page,
+                limit,
+                totalPastes,
+                totalPages
+            }
+        };
     }
 
     static async getMonthlyStats(month) {
@@ -75,9 +91,9 @@ class Paste {
                 COALESCE(ROUND(AVG(views)), 0) as avgViewsPerPaste,
                 COALESCE(MIN(views), 0) as minViews,
                 COALESCE(MAX(views), 0) as maxViews,
-                SUM(CASE WHEN expires_at IS NULL OR expires_at > NOW() THEN 1 ELSE 0 END) as activePastes,
-                SUM(CASE WHEN expires_at IS NOT NULL AND expires_at <= NOW() THEN 1 ELSE 0 END) as expiredPastes
-            FROM pastes 
+                COALESCE(SUM(CASE WHEN expires_at IS NULL OR expires_at > NOW() THEN 1 ELSE 0 END), 0) AS activePastes,
+                COALESCE(SUM(CASE WHEN expires_at IS NOT NULL AND expires_at <= NOW() THEN 1 ELSE 0 END), 0) AS expiredPastes
+            FROM paste 
             WHERE DATE_FORMAT(created_at, '%Y-%m') = ?
         `, [month]);
 
@@ -85,4 +101,4 @@ class Paste {
     }
 }
 
-module.exports = Paste; 
+module.exports = Paste;

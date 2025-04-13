@@ -22,9 +22,13 @@ const getPasteById = async (id) => {
     }
 };
 
-const getPublicPastes = async () => {
+const getPublicPastes = async (page = 1) => {
     try {
-        return await Paste.getPublic();
+        // Convert page to number and ensure it's at least 1
+        page = parseInt(page) || 1;
+        if (page < 1) page = 1;
+        
+        return await Paste.getPublic(page, 5);
     } catch (error) {
         console.error('Get public pastes error:', error);
         throw new Error('Failed to fetch public pastes');
@@ -45,4 +49,4 @@ module.exports = {
     getPasteById,
     getPublicPastes,
     getMonthlyStats
-}; 
+};

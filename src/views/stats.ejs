@@ -7,6 +7,11 @@
 </head>
 
 <body class="container mt-5">
+    <% if (error) { %>
+        <div class="alert alert-danger" id="error">
+            <%= error %>
+        </div>
+    <% } %>
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>Monthly Statistics</h1>
         <div class="d-flex gap-2">

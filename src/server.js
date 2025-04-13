@@ -3,6 +3,7 @@ const cors = require('cors');
 const morgan = require('morgan');
 const path = require('path');
 const pasteService = require('./services/paste.service');
+const { removeExpiredPastes } = require('./services/cleanup.service');
 require('dotenv').config();
 
 const app = express();
@@ -32,6 +33,11 @@ app.use((err, req, res, next) => {
 
 // Start server
 const PORT = process.env.PORT || 3000;
+const CLEANUP_INTERVAL_MINS = process.env.CLEANUP_INTERVAL_MINS || 1;
+
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
-}); 
+
+    // Run cleanup service every hour
+    setInterval(removeExpiredPastes, CLEANUP_INTERVAL_MINS * 60 * 1000);
+});

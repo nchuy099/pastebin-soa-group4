@@ -16,10 +16,10 @@ const createPaste = async (req, res) => {
             visibility
         });
 
-        res.redirect(`/paste/${result.id}`);
+        res.status(302).redirect(`/paste/${result.id}`);
     } catch (error) {
-        console.error('Error creating paste:', error);
-        res.render('index', { error: 'Failed to create paste' });
+        console.error('Error creating paste:', error.message);
+        res.status(500).render('index', { error: error.message });
     }
 };
 
@@ -33,19 +33,12 @@ const getPaste = async (req, res) => {
                 pasteId: req.params.id
             });
         }
-
-        if (result.status === 'expired') {
-            return res.status(403).render('expired', {
-                error: 'This paste has expired and is no longer accessible',
-                pasteId: req.params.id
-            });
-        }
-
-        res.render('paste', { paste: result.paste });
+            
+        res.status(200).render('paste', { paste: result.paste, error: null });
     } catch (error) {
-        console.error('Error retrieving paste:', error);
+        console.error(`Error retrieving paste ${req.params.id}:`, error.message);
         res.status(500).render('index', {
-            error: 'Failed to retrieve paste',
+            error: error.message,
             pasteId: req.params.id
         });
     }
@@ -53,16 +46,23 @@ const getPaste = async (req, res) => {
 
 const getPublicPastes = async (req, res) => {
     try {
-        const pastes = await pasteService.getPublicPastes();
-        res.render('public', { pastes });
+        // Lấy tham số page từ query string
+        const page = parseInt(req.query.page) || 1;
+        const result = await pasteService.getPublicPastes(page);
+        res.status(200).render('public', { pastes: result.pastes, pagination: result.pagination, error: null });
     } catch (error) {
-        console.error('Error fetching public pastes:', error);
-        res.render('public', { pastes: [], error: 'Failed to fetch public pastes' });
+        console.error(`Error fetching public page ${req.query.page}:`, error.message);
+        res.status(500).render('public', { pastes: [], error: error.message, page: req.query.page });
     }
 };
 
 const showCreateForm = (req, res) => {
-    res.render('index', { error: null });
+    try {
+        res.status(200).render('index', { error: null });
+    } catch (error) {
+        console.error('Error showing create form:', error.message);
+        res.status(500).render('index', { error: error.message });
+    }
 };
 
 const getMonthlyStats = async (req, res) => {
@@ -83,12 +83,13 @@ const getMonthlyStats = async (req, res) => {
         }
 
         const stats = await pasteService.getMonthlyStats(month);
-        res.render('stats', { stats, error: null });
+        res.status(200).render('stats', { stats, error: null });
     } catch (error) {
-        console.error('Error fetching monthly stats:', error);
-        res.render('stats', {
+        console.error(`Error fetching stats on ${req.params.month}:`, error.message);
+        res.status(500).render('stats', {
             stats: null,
-            error: error.message || 'Failed to fetch statistics'
+            error: error.message || 'Failed to fetch statistics',
+            month: req.params.month
         });
     }
 };
@@ -99,4 +100,4 @@ module.exports = {
     getPublicPastes,
     showCreateForm,
     getMonthlyStats
-}; 
+};

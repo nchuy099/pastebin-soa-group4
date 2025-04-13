@@ -10,6 +10,11 @@
 </head>
 
 <body class="container mt-5">
+    <% if (error) { %>
+        <div class="alert alert-danger" id="error">
+            <%= error %>
+        </div>
+    <% } %>
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center gap-3">
