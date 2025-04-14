@@ -7,14 +7,14 @@ services:
     ports:
       - "8081:8081"
     environment:
-      - DB_HOST=db
+      - DB_HOST=mysql
       - DB_PORT=3306
-      - DB_USER=mysql
+      - DB_USER=root
       - DB_PASS=password
       - DB_NAME=pastebin
       - PORT=8081
     depends_on:
-      db:
+      mysql:
         condition: service_healthy
 
   get-paste-service:
@@ -24,14 +24,14 @@ services:
     ports:
       - "8082:8082"
     environment:
-      - DB_HOST=db
+      - DB_HOST=mysql
       - DB_PORT=3306
-      - DB_USER=mysql
+      - DB_USER=root
       - DB_PASS=password
       - DB_NAME=pastebin
       - PORT=8082
     depends_on:
-      db:
+      mysql:
         condition: service_healthy
 
   get-public-service:
@@ -41,14 +41,14 @@ services:
     ports:
       - "8083:8083"
     environment:
-      - DB_HOST=db
+      - DB_HOST=mysql
       - DB_PORT=3306
-      - DB_USER=mysql
+      - DB_USER=root
       - DB_PASS=password
       - DB_NAME=pastebin
       - PORT=8083
     depends_on:
-      db:
+      mysql:
         condition: service_healthy
 
   get-stats-service:
@@ -58,48 +58,64 @@ services:
     ports:
       - "8084:8084"
     environment:
-      - DB_HOST=db
+      - DB_HOST=mysql
       - DB_PORT=3306
-      - DB_USER=mysql
+      - DB_USER=root
       - DB_PASS=password
       - DB_NAME=pastebin
       - PORT=8084
     depends_on:
-      db:
+      mysql:
         condition: service_healthy
 
-  nginx:
-    image: nginx:latest
+  cleanup-expired-service:
+    build:
+      context: ./cleanup-expired-service-go
+      dockerfile: Dockerfile
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASS=password
+      - DB_NAME=pastebin
+      - CLEANUP_INTERVAL_MINS=0.25
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  locust:
+    build:
+      context: ./locust
+      dockerfile: Dockerfile
     ports:
-      - "80:80"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./nginx/conf.d:/etc/nginx/conf.d
+      - "8089:8089"
     depends_on:
       - create-paste-service
       - get-paste-service
       - get-public-service
       - get-stats-service
-    restart: unless-stopped
+      - cleanup-expired-service
+    networks:
+      - default
+    environment:
+      - HOST_CREATE=http://create-paste-service:8081
+      - HOST_GET_ID=http://get-paste-service:8082
+      - HOST_GET_PAGE=http://get-public-service:8083
+      - HOST_STATS=http://get-stats-service:8084
+    command: locust -f locustfile.py
 
-  db:
+  mysql:
     image: mysql:8.0
     ports:
       - "3307:3306"
     environment:
       MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: pastebin
-      MYSQL_USER: mysql
-      MYSQL_PASSWORD: password
     volumes:
-      - mysql_data:/var/lib/mysql
       - ./pastebin_db.sql:/docker-entrypoint-initdb.d/pastebin_db.sql
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-ppassword" ]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-ppassword" ]
       interval: 5s
       timeout: 3s
       retries: 5
-
-volumes:
-  mysql_data:

@@ -16,10 +16,12 @@ func GetPasteHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Param
 
 	paste, err := repository.GetPasteByID(pasteID)
 	if err != nil {
-		if err == repository.ErrPasteExpired || err == sql.ErrNoRows {
-			respondWithError(w, http.StatusNotFound, "Paste not found or expired")
+		if err == repository.ErrPasteExpired {
+			respondWithError(w, http.StatusForbidden, "Paste expired", err)
+		} else if err == sql.ErrNoRows {
+			respondWithError(w, http.StatusNotFound, "Paste not found", err)
 		} else {
-			respondWithError(w, http.StatusInternalServerError, "Internal server error")
+			respondWithError(w, http.StatusInternalServerError, "Internal server error", err)
 		}
 		return
 	}
@@ -35,10 +37,12 @@ func GetPasteHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Param
 }
 
 // Helper function to respond with an error
-func respondWithError(w http.ResponseWriter, code int, message string) {
+func respondWithError(w http.ResponseWriter, code int, message string, err error) {
+	errMsg := err.Error()
 	response := model.ResponseData{
 		Status:  code,
 		Message: message,
+		Error:   &errMsg,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

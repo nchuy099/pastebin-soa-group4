@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"fmt"
+	"database/sql"
 	"log"
 
 	"create-paste-service-go/db"
@@ -10,16 +10,18 @@ import (
 
 // ExistsById checks if a paste with the given ID exists
 func ExistsById(id string) (bool, error) {
-	query := "SELECT COUNT(*) FROM paste WHERE id = ?"
+	query := "SELECT id FROM paste WHERE id = ?"
 
-	var count int
-	err := db.DB.QueryRow(query, id).Scan(&count)
-	if err != nil {
-		log.Printf("Error checking if paste exists: %v", err)
-		return false, err
+	var pasteId string
+	row := db.DB.QueryRow(query, id).Scan(&pasteId)
+
+	if row == sql.ErrNoRows {
+		return false, nil
 	}
 
-	return count > 0, nil
+	log.Printf("Error checking if paste exists: %v", pasteId)
+
+	return true, nil
 }
 
 // SavePaste saves a new paste to the database
@@ -42,8 +44,8 @@ func SavePaste(paste *model.Paste) error {
 	)
 
 	if err != nil {
-		log.Printf("Error saving paste: %v", err)
-		return fmt.Errorf("failed to save paste: %w", err)
+		log.Printf("Error saving paste: %v", err.Error())
+		return err
 	}
 
 	return nil

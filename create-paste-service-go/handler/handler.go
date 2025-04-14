@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -18,6 +19,7 @@ import (
 func GenerateUniqueID(length int) (string, error) {
 	bytes := make([]byte, length/2)
 	if _, err := rand.Read(bytes); err != nil {
+		log.Printf("Error generating ID: %v", err.Error())
 		return "", err
 	}
 	return hex.EncodeToString(bytes), nil
@@ -29,7 +31,8 @@ func CreatePaste(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var request model.CreatePasteRequest
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&request); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload", err)
+		log.Printf("Error decoding request body: %v", err.Error())
 		return
 	}
 	defer r.Body.Close()
@@ -42,13 +45,13 @@ func CreatePaste(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	for {
 		id, err = GenerateUniqueID(8)
 		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, "Failed to generate ID")
+			respondWithError(w, http.StatusInternalServerError, "Failed to generate ID", err)
 			return
 		}
 
 		exists, err = repository.ExistsById(id)
 		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, "Failed to check ID availability")
+			respondWithError(w, http.StatusInternalServerError, "Failed to check ID availability", err)
 			return
 		}
 
@@ -93,7 +96,7 @@ func CreatePaste(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	// Save to database
 	if err := repository.SavePaste(paste); err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Failed to save paste")
+		respondWithError(w, http.StatusInternalServerError, "Failed to save paste", err)
 		return
 	}
 
@@ -112,10 +115,12 @@ func CreatePaste(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 }
 
 // Helper function to respond with an error
-func respondWithError(w http.ResponseWriter, code int, message string) {
+func respondWithError(w http.ResponseWriter, code int, message string, err error) {
+	errMsg := err.Error()
 	response := model.ResponseData{
 		Status:  code,
 		Message: message,
+		Error:   &errMsg,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

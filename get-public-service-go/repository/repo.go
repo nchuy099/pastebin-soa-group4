@@ -16,6 +16,7 @@ func GetPublicPastes(limit, offset int) ([]model.Paste, error) {
 
 	rows, err := db.DB.Query(query, limit, offset)
 	if err != nil {
+		log.Println("Error querying public pastes:", err.Error())
 		return nil, err
 	}
 	defer rows.Close()
@@ -26,7 +27,7 @@ func GetPublicPastes(limit, offset int) ([]model.Paste, error) {
 		err := rows.Scan(&paste.ID, &paste.Content, &paste.Title, &paste.Language,
 			&paste.CreatedAt, &paste.ExpiresAt, &paste.Views, &paste.Visibility)
 		if err != nil {
-			log.Println("Error scanning row:", err)
+			log.Println("Error scanning row:", err.Error())
 			continue
 		}
 
@@ -44,7 +45,7 @@ func CountPublicPastes() (int, error) {
 	var count int
 	err := db.DB.QueryRow(query).Scan(&count)
 	if err != nil {
-		log.Println("Error counting public pastes:", err)
+		log.Println("Error counting public pastes:", err.Error())
 		return 0, err
 	}
 

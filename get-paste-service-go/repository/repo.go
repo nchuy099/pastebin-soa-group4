@@ -3,10 +3,11 @@ package repository
 import (
 	"database/sql"
 	"errors"
+	"log"
 	"time"
 
-	"get-paste-service/model"
 	"get-paste-service/db"
+	"get-paste-service/model"
 )
 
 var ErrPasteExpired = errors.New("paste has expired")
@@ -24,12 +25,14 @@ func GetPasteByID(id string) (*model.Paste, error) {
 		if err == sql.ErrNoRows {
 			return nil, sql.ErrNoRows
 		}
+		log.Printf("Error getting paste: %v", err.Error())
 		return nil, err
 	}
 
 	if expiresAt.Valid {
 		paste.ExpiresAt = &expiresAt.Time
 		if expiresAt.Time.Before(time.Now()) {
+			log.Printf("Paste has expired: %v", id)
 			return nil, ErrPasteExpired
 		}
 	}

@@ -18,6 +18,7 @@ type Pagination struct {
 	Page       int `json:"page"`
 	Limit      int `json:"limit"`
 	TotalItems int `json:"totalItems,omitempty"`
+	TotalPages int `json:"totalPages,omitempty"`
 }
 
 // PasteListResponse represents a paginated list of pastes
@@ -31,4 +32,5 @@ type ResponseData struct {
 	Status  int         `json:"status"`
 	Message string      `json:"message"`
 	Data    interface{} `json:"data,omitempty"`
+	Error   *string     `json:"error,omitempty"`
 }

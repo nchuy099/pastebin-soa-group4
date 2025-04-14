@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"fmt"
 	"log"
 
 	"get-stats-service-go/db"
@@ -37,8 +36,8 @@ func GetMonthlyStats(year, month int) (*model.MonthlyStats, error) {
 	)
 
 	if err != nil {
-		log.Printf("Error scanning monthly stats: %v", err)
-		return nil, fmt.Errorf("failed to retrieve monthly stats: %w", err)
+		log.Printf("Error scanning monthly stats: %v", err.Error())
+		return nil, err
 	}
 
 	return &stats, nil
