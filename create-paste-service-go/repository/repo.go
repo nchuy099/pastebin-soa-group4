@@ -10,18 +10,15 @@ import (
 
 // ExistsById checks if a paste with the given ID exists
 func ExistsById(id string) (bool, error) {
-	query := "SELECT id FROM paste WHERE id = ?"
+	query := "SELECT 1 FROM paste WHERE id = ? LIMIT 1"
+	var exists bool
+	err := db.DB.QueryRow(query, id).Scan(&exists)
 
-	var pasteId string
-	row := db.DB.QueryRow(query, id).Scan(&pasteId)
-
-	if row == sql.ErrNoRows {
-		return false, nil
+	if err != nil && err != sql.ErrNoRows {
+		log.Printf("Error checking if paste exists: %v", err.Error())
+		return false, err
 	}
-
-	log.Printf("Error checking if paste exists: %v", pasteId)
-
-	return true, nil
+	return exists, nil
 }
 
 // SavePaste saves a new paste to the database

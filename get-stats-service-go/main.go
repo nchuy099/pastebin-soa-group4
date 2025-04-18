@@ -16,7 +16,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8084" // Using a different port than the other service
+		port = "8083" // Using a different port than the other service
 	}
 
 	r := router.SetupRouter()

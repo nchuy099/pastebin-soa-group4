@@ -23,9 +23,9 @@ func InitDB() {
 		log.Fatalf("Failed to connect to MySQL: %v", err)
 	}
 
-	// DB.SetMaxOpenConns(12)     // tổng số kết nối tối đa (active hoặc idle)
-	// DB.SetMaxIdleConns(6)      // số kết nối nhàn rỗi (idle) giữ lại
-	// DB.SetConnMaxLifetime(300) // lifetime (seconds) của mỗi connection, tránh timeout ngẫu nhiên
+	DB.SetMaxOpenConns(36)     // tổng số kết nối tối đa (active hoặc idle)
+	DB.SetMaxIdleConns(18)     // số kết nối nhàn rỗi (idle) giữ lại
+	DB.SetConnMaxLifetime(300) // lifetime (seconds) của mỗi connection, tránh timeout ngẫu nhiên
 
 	if err = DB.Ping(); err != nil {
 		log.Fatalf("Database unreachable: %v", err)
