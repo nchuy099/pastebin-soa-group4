@@ -25,9 +25,10 @@ class Paste {
 
         let expiresAt = null;
         if (expiresIn && !isNaN(expiresIn)) {
-            expiresAt = new Date(Date.now() + expiresIn * 60 * 1000);
+            expiresAt = new Date(Date.now() + expiresIn * 60 * 1000); // Set expiration time
         }
 
+        // Insert into paste table
         await db.query(
             'INSERT INTO paste (id, content, title, language, expires_at, visibility) VALUES (?, ?, ?, ?, ?, ?)',
             [id, content, title || 'Untitled', language || 'text', expiresAt, visibility || 'PUBLIC']
@@ -36,22 +37,28 @@ class Paste {
         return { id };
     }
 
+
+
     static async getById(id) {
         // Get the paste
         const [pastes] = await db.query(
-            'SELECT id, content, title, language, created_at, expires_at, views, visibility FROM paste WHERE id = ?',
+            'SELECT id, content, title, language, created_at, expires_at, visibility FROM paste WHERE id = ?',
             [id]
         );
 
-        if (pastes.length === 0 || pastes[0].expires_at && new Date(pastes[0].expires_at) <= new Date()) {
+        if (pastes.length === 0 || (pastes[0].expires_at && new Date(pastes[0].expires_at) <= new Date())) {
             return { status: 'not_found' };
         }
 
-        // Increment views for active paste
-        await db.query('UPDATE paste SET views = views + 1 WHERE id = ?', [id]);
+        // Insert into paste_views table to track the view, using CURRENT_TIMESTAMP
+        await db.query(
+            'INSERT INTO paste_views (paste_id, viewed_at) VALUES (?, CURRENT_TIMESTAMP)',
+            [id]
+        );
 
         return { status: 'active', paste: pastes[0] };
     }
+
 
     static async getPublic(page = 1, limit = 5) {
         // Get only non-expired public pastes with pagination
@@ -83,22 +90,27 @@ class Paste {
         };
     }
 
-    static async getMonthlyStats(month) {
-        const [stats] = await db.query(`
-            SELECT 
-                COUNT(*) as totalPastes,
-                COALESCE(SUM(views), 0) as totalViews,
-                COALESCE(ROUND(AVG(views)), 0) as avgViewsPerPaste,
-                COALESCE(MIN(views), 0) as minViews,
-                COALESCE(MAX(views), 0) as maxViews,
-                COALESCE(SUM(CASE WHEN expires_at IS NULL OR expires_at > NOW() THEN 1 ELSE 0 END), 0) AS activePastes,
-                COALESCE(SUM(CASE WHEN expires_at IS NOT NULL AND expires_at <= NOW() THEN 1 ELSE 0 END), 0) AS expiredPastes
-            FROM paste 
-            WHERE DATE_FORMAT(created_at, '%Y-%m') = ?
-        `, [month]);
+    static async getMonthlyViewStats(month) {
+        const fullDate = `${month}-01`; // Chuyển 'YYYY-MM' thành 'YYYY-MM-01'
 
-        return { month, ...stats[0] };
+        const [[viewStats]] = await db.query(`
+            SELECT
+                COALESCE(SUM(view_count), 0) AS totalViews,
+                COALESCE(ROUND(AVG(view_count)), 0) AS avgViewsPerPaste,
+                COALESCE(MIN(view_count), 0) AS minViews,
+                COALESCE(MAX(view_count), 0) AS maxViews
+            FROM (
+                SELECT paste_id, COUNT(*) AS view_count
+                FROM paste_views
+                WHERE YEAR(viewed_at) = YEAR(?) AND MONTH(viewed_at) = MONTH(?)
+                GROUP BY paste_id
+            ) AS monthly_paste_views
+        `, [fullDate, fullDate]);
+
+        return { month, ...viewStats };
     }
+
+
 }
 
 module.exports = Paste;

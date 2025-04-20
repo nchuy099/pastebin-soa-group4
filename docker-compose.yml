@@ -21,13 +21,11 @@ services:
       - ./pastebin_db.sql:/docker-entrypoint-initdb.d/pastebin_db.sql
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost","-uroot", "-ppassword" ]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-    command: [
-      "--max_connections=500"
-    ]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-ppassword" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    command: [ "--max_connections=500" ]
 
   locust:
     build: ./locust
@@ -39,7 +37,6 @@ services:
       - app
       - mysql
     command: [ "locust", "-f", "locustfile.py", "--host=http://app:${PORT}" ]
-
     # command: [
     #   "--max_connections=500",
     #   "--innodb-buffer-pool-size=512M",

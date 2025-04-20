@@ -15,6 +15,6 @@ router.get('/paste/:id', pasteController.getPaste);
 router.get('/public', pasteController.getPublicPastes);
 
 // Get monthly statistics
-router.get('/stats/:month?', pasteController.getMonthlyStats);
+router.get('/stats/:month?', pasteController.getMonthlyViewStats);
 
 module.exports = router; 

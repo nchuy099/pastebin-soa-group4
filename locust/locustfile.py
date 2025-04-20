@@ -1,5 +1,6 @@
 import os
 import random
+import datetime
 import string
 import csv
 import re
@@ -11,26 +12,19 @@ class PastebinUser(HttpUser):
     wait_time = between(1, 5)
     host = os.getenv("TARGET_HOST", "http://localhost:3000")
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.paste_ids = []
-        self.total_pages = None
+    # Class-level variable shared across all users
+    paste_ids = []
 
-    def on_start(self):
-        pass
-
-    def _get_total_pages_from_response(self, response):
-        # Parse pagination info from HTML
-        soup = BeautifulSoup(response.text, "html.parser")
-        small_text = soup.find("small", string=re.compile("tổng số"))
-        
-        if small_text:
-            match = re.search(r"tổng số (\d+) paste", small_text.text)
-            if match:
-                total_pastes = int(match.group(1))
-                per_page = 10  # Số paste trên mỗi trang
-                return math.ceil(total_pastes / per_page)
-        return 1
+    @classmethod
+    def on_start(cls):
+        """Load paste IDs from the CSV file once for all users"""
+        if not cls.paste_ids:  # Only load if paste_ids are not already loaded
+            csv_path = 'paste_id.csv'
+            with open(csv_path, "r") as f:
+                cls.paste_ids = [line.strip() for line in f if line.strip()]
+            
+            # Optional: Log the number of paste IDs loaded
+            print(f"Loaded {len(cls.paste_ids)} paste IDs.")
 
     def _extract_error_message(self, response):
         try:
@@ -39,19 +33,6 @@ class PastebinUser(HttpUser):
             return error_div.text.strip() if error_div else "Unknown error"
         except:
             return "Unknown error"
-
-    @task(3)
-    def view_homepage(self):
-        with self.client.get("/", name="/", catch_response=True) as response:
-            if response.status_code == 200 or response.status_code == 304:
-                response.success()
-                print(f"[Success] View homepage (status={response.status_code})")
-            elif response.status_code == 0:
-                response.failure("Connection failed: No response")
-                print(f"[Error] Failed to view homepage (status={response.status_code})")
-            else:
-                response.failure(response.text)
-                print(f"[Error] Failed to view homepage (status={response.status_code})")
 
     @task(3)
     def create_paste(self):
@@ -87,7 +68,7 @@ class PastebinUser(HttpUser):
                 location = response.headers.get('Location')
                 if location:
                     paste_id = location.split('/')[-1]
-                    self.paste_ids.append(paste_id)
+                    PastebinUser.paste_ids.append(paste_id)
                 response.success()
                 print(f"[Success] Created new paste (status={response.status_code})")
             elif response.status_code == 0:
@@ -99,8 +80,8 @@ class PastebinUser(HttpUser):
             
     @task(3)
     def view_paste_by_id(self):
-        if self.paste_ids:
-            paste_id = random.choice(self.paste_ids)
+        if PastebinUser.paste_ids:
+            paste_id = random.choice(PastebinUser.paste_ids)
             with self.client.get(f"/paste/{paste_id}", name="/paste/:id", catch_response=True) as response:
                 if response.status_code == 200 or response.status_code == 404:
                     response.success()
@@ -112,26 +93,27 @@ class PastebinUser(HttpUser):
                     response.failure(response.text)
                     print(f"[Error] Failed to view paste (status={response.status_code})")
 
-    @task(2)
-    def view_public_pastes(self):
-        page = random.randint(1, self.total_pages) if self.total_pages else 1
-        with self.client.get(f"/public?page={page}", name="/public?page", catch_response=True) as response:
-            if response.status_code == 200:
-                self.total_pages = self._get_total_pages_from_response(response)
-                response.success()
-                print(f"[Success] View public pastes (status={response.status_code})")
-            elif response.status_code == 0:
-                response.failure("Connection failed: No response")
-                print(f"[Error] Failed to load public pastes (status={response.status_code})")
-            else:
-                response.failure(response.text)
-                print(f"[Error] Failed to load public pastes (status={response.status_code})")
 
     @task(2)
     def view_monthly_stats(self):
-        year = random.randint(2020, 2025)
-        month = f"{year}-{random.randint(1, 12):02d}"
-        url = f"/stats/{month}"
+        """Get monthly stats from GET /stats/api/paste/stats?month=YYYY-MM, up to the current month"""
+        # Get current year and month
+        today = datetime.date.today()
+        current_year = today.year
+        current_month = today.month
+        
+        # Randomly generate a month that is not in the future (up to the current month)
+        year = random.randint(2020, current_year)
+        
+        if year == current_year:
+            # If the random year is the current year, exclude months after the current month
+            month = random.randint(1, current_month)
+        else:
+            # If the year is not the current year, any month is valid
+            month = random.randint(1, 12)
+        
+        date = f"{year}-{month:02d}"
+        url = f"/stats/{date}"
         with self.client.get(url, name="/stats", catch_response=True) as response:
             if response.status_code == 200:
                 response.success()

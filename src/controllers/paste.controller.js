@@ -33,7 +33,7 @@ const getPaste = async (req, res) => {
                 pasteId: req.params.id
             });
         }
-            
+
         res.status(200).render('paste', { paste: result.paste, error: null });
     } catch (error) {
         console.error(`Error retrieving paste ${req.params.id}:`, error.message);
@@ -65,7 +65,7 @@ const showCreateForm = (req, res) => {
     }
 };
 
-const getMonthlyStats = async (req, res) => {
+const getMonthlyViewStats = async (req, res) => {
     try {
         let month = req.params.month;
 
@@ -82,7 +82,7 @@ const getMonthlyStats = async (req, res) => {
             throw new Error('Invalid month format. Use YYYY-MM');
         }
 
-        const stats = await pasteService.getMonthlyStats(month);
+        const stats = await pasteService.getMonthlyViewStats(month);
         res.status(200).render('stats', { stats, error: null });
     } catch (error) {
         console.error(`Error fetching stats on ${req.params.month}:`, error.message);
@@ -99,5 +99,5 @@ module.exports = {
     getPaste,
     getPublicPastes,
     showCreateForm,
-    getMonthlyStats
+    getMonthlyViewStats
 };
