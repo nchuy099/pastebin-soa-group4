@@ -1,4 +1,4 @@
-module get-stats-service-go
+module get-stats-service
 
 go 1.21.0
 

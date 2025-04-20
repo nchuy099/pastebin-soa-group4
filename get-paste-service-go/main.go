@@ -10,7 +10,7 @@ import (
 	"get-paste-service/cache"
 	"get-paste-service/config"
 	"get-paste-service/db"
-	"get-paste-service/queue"
+	"get-paste-service/producer"
 	"get-paste-service/router"
 )
 
@@ -21,7 +21,7 @@ func main() {
 	// Initialize components
 	db.InitDB()
 	cache.InitRedis()
-	queue.InitRabbitMQ()
+	producer.InitRabbitMQ()
 
 	// Set up graceful shutdown
 	quit := make(chan os.Signal, 1)
@@ -48,7 +48,7 @@ func main() {
 	log.Println("Shutting down server...")
 
 	// Close connections
-	queue.CloseRabbitMQ()
+	producer.CloseRabbitMQ()
 
 	log.Println("Server shutdown complete")
 }

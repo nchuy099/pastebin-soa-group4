@@ -76,9 +76,9 @@ services:
     restart: unless-stopped
 
   # Create Worker Service - Independent service that handles database insertion
-  create-worker:
+  create-paste-worker:
     build:
-      context: ./create-worker-service-go
+      context: ./create-paste-worker-go
       dockerfile: Dockerfile
     environment:
       - DB_HOST=mysql
@@ -88,7 +88,7 @@ services:
       - DB_NAME=pastebin
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
       - NUM_WORKERS=1 # 5 goroutines per container
-      - BATCH_SIZE=100 # Process 100 pastes per batch
+      - BATCH_SIZE=1000 # Process 100 pastes per batch
       - BATCH_TIMEOUT_SECS=5 # Flush batch after 3 seconds if not full
     depends_on:
       mysql:

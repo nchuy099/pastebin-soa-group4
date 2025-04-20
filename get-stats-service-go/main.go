@@ -7,10 +7,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"get-stats-service-go/cache"
-	"get-stats-service-go/config"
-	"get-stats-service-go/db"
-	"get-stats-service-go/router"
+	"get-stats-service/cache"
+	"get-stats-service/config"
+	"get-stats-service/db"
+	"get-stats-service/router"
 )
 
 func main() {

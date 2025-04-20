@@ -1,5 +1,6 @@
 from locust import HttpUser, task, between
 import random
+import datetime  
 import string
 import csv
 import os
@@ -117,10 +118,23 @@ class PastebinUser(HttpUser):
 
     @task(3)
     def get_monthly_stats(self):
-        """Get monthly stats from GET /stats/api/paste/stats?month=YYYY-MM"""
-        year = random.randint(2020, 2025)
-        month = f"{random.randint(1, 12):02d}"
-        date = f"{year}-{month}"
+        """Get monthly stats from GET /stats/api/paste/stats?month=YYYY-MM, up to the current month"""
+        # Get current year and month
+        today = datetime.date.today()
+        current_year = today.year
+        current_month = today.month
+        
+        # Randomly generate a month that is not in the future (up to the current month)
+        year = random.randint(2020, current_year)
+        
+        if year == current_year:
+            # If the random year is the current year, exclude months after the current month
+            month = random.randint(1, current_month)
+        else:
+            # If the year is not the current year, any month is valid
+            month = random.randint(1, 12)
+        
+        date = f"{year}-{month:02d}"
         
         with self.client.get(
             f"{self.host}/stats/api/paste/stats?month={date}",

@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"os"
 
-	"create-paste-service-go/cache"
-	"create-paste-service-go/config"
-	"create-paste-service-go/queue"
-	"create-paste-service-go/router"
+	"create-paste-service/cache"
+	"create-paste-service/config"
+	"create-paste-service/producer"
+	"create-paste-service/router"
 )
 
 func main() {
@@ -27,12 +27,12 @@ func main() {
 	}
 
 	// Initialize RabbitMQ
-	err = queue.InitRabbitMQ()
+	err = producer.InitRabbitMQ()
 	if err != nil {
 		log.Printf("Warning: RabbitMQ initialization failed: %v", err)
 		log.Println("Service will continue without async processing")
 	} else {
-		defer queue.CloseRabbitMQ()
+		defer producer.CloseRabbitMQ()
 	}
 
 	port := os.Getenv("PORT")

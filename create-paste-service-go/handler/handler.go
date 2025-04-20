@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"create-paste-service-go/cache"
-	"create-paste-service-go/model"
-	"create-paste-service-go/queue"
+	"create-paste-service/cache"
+	"create-paste-service/model"
+	"create-paste-service/producer"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -88,7 +88,7 @@ func CreatePaste(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 
 	// Then, publish to RabbitMQ for async processing
-	err = queue.PublishPaste(paste)
+	err = producer.PublishPaste(paste)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to queue paste creation", err)
 		return

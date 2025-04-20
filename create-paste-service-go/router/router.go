@@ -3,7 +3,7 @@ package router
 import (
 	"net/http"
 
-	"create-paste-service-go/handler"
+	"create-paste-service/handler"
 
 	"github.com/julienschmidt/httprouter"
 )

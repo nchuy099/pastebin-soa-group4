@@ -1,55 +1,59 @@
 package repository
 
 import (
-	"get-stats-service-go/cache"
-	"get-stats-service-go/db"
-	"get-stats-service-go/model"
+	"database/sql"
+	"errors"
+	"fmt"
+	"get-stats-service/db"
+	"get-stats-service/model"
 	"log"
 	"time"
 )
 
-// GetMonthlyStats retrieves monthly statistics for pastes created in a specific year and month
-func GetMonthlyStats(year, month int) (*model.MonthlyStats, error) {
-	// Get current year and month
-	now := time.Now()
-	currentYear, currentMonth := now.Year(), int(now.Month())
+// GetMonthlyStatsForNonCurrentMonth fetches stats directly from the materialized view database
+func GetMonthlyStatsForNonCurrentMonth(year, month int) (*model.MonthlyStats, error) {
+	monthStr := fmt.Sprintf("%04d-%02d", year, month) // e.g. "2025-04"
 
-	// Check if requested stats are not for the current month
-	if year != currentYear || month != currentMonth {
-		// Try to get from cache first for non-current months
-		log.Printf("Attempting to fetch stats for %d-%02d from cache (not current month)", year, month)
-		cachedStats, err := cache.GetMonthlyStatsFromCache(year, month)
-		if err != nil {
-			log.Printf("Error getting stats from cache: %v", err)
-		} else if cachedStats != nil {
-			return cachedStats, nil
-		}
-	}
+	query := `
+        SELECT
+            total_views,
+            avg_views_per_paste,
+            min_views,
+            max_views
+        FROM paste_stats_readonly
+        WHERE month_year = ?
+    `
 
-	// Continue with database query if not in cache or is current month
-	log.Printf("Fetching stats for %d-%02d from database", year, month)
-	stats, err := getMonthlyStatsFromDB(year, month)
+	row := db.DB.QueryRow(query, monthStr)
+
+	var stats model.MonthlyStats
+	err := row.Scan(
+		&stats.TotalViews,
+		&stats.AvgViewsPerPaste,
+		&stats.MinViews,
+		&stats.MaxViews,
+	)
+
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			// Không có dữ liệu thống kê cho tháng này
+			return &model.MonthlyStats{
+				TotalViews:       0,
+				AvgViewsPerPaste: 0,
+				MinViews:         0,
+				MaxViews:         0,
+			}, nil
+		}
+
+		log.Printf("Error scanning cached monthly stats: %v", err.Error())
 		return nil, err
 	}
 
-	// If not current month, cache the results
-	if year != currentYear || month != currentMonth {
-		if err := cache.SetMonthlyStatsToCache(year, month, stats); err != nil {
-			log.Printf("Failed to cache stats: %v", err)
-		}
-	} else {
-		// For current month, still cache but with short TTL (handled in SetMonthlyStatsToCache)
-		if err := cache.SetMonthlyStatsToCache(year, month, stats); err != nil {
-			log.Printf("Failed to cache current month stats: %v", err)
-		}
-	}
-
-	return stats, nil
+	return &stats, nil
 }
 
-// getMonthlyStatsFromDB fetches stats directly from the database
-func getMonthlyStatsFromDB(year, month int) (*model.MonthlyStats, error) {
+// GetMonthlyStatsForCurrentMonth fetches stats directly from the primary database
+func GetMonthlyStatsForCurrentMonth(year, month int) (*model.MonthlyStats, error) {
 	startDate := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
 	endDate := startDate.AddDate(0, 1, 0) // Next month
 

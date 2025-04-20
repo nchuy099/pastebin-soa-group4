@@ -12,7 +12,7 @@ type Paste struct {
 	Visibility string     `json:"visibility"`
 }
 
-type PasteViews struct {
+type PasteView struct {
 	PasteID  string    `json:"paste_id"`
 	ViewedAt time.Time `json:"viewed_at"`
 }

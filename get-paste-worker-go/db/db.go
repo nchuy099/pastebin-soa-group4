@@ -12,45 +12,22 @@ import (
 var DB *sql.DB
 
 func InitDB() {
-	dbHost := os.Getenv("DB_HOST")
-	if dbHost == "" {
-		dbHost = "localhost"
-	}
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?parseTime=true",
+		os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_HOST"), os.Getenv("DB_NAME"))
 
-	dbPort := os.Getenv("DB_PORT")
-	if dbPort == "" {
-		dbPort = "3306"
-	}
-
-	dbUser := os.Getenv("DB_USER")
-	if dbUser == "" {
-		dbUser = "root"
-	}
-
-	dbPassword := os.Getenv("DB_PASSWORD")
-	if dbPassword == "" {
-		dbPassword = "password"
-	}
-
-	dbName := os.Getenv("DB_NAME")
-	if dbName == "" {
-		dbName = "pastebin"
-	}
-
-	// Create connection string
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", dbUser, dbPassword, dbHost, dbPort, dbName)
-
-	// Open database connection
 	var err error
 	DB, err = sql.Open("mysql", dsn)
 	if err != nil {
-		log.Fatalf("Error connecting to database: %v", err)
+		log.Fatalf("Failed to connect to MySQL: %v", err)
 	}
 
-	// Verify connection
-	if err := DB.Ping(); err != nil {
-		log.Fatalf("Error pinging database: %v", err)
+	// DB.SetMaxOpenConns(72)     // tổng số kết nối tối đa (active hoặc idle)
+	// DB.SetMaxIdleConns(36)     // số kết nối nhàn rỗi (idle) giữ lại
+	// DB.SetConnMaxLifetime(300) // lifetime (seconds) của mỗi connection, tránh timeout ngẫu nhiên
+
+	if err = DB.Ping(); err != nil {
+		log.Fatalf("Database unreachable: %v", err)
 	}
 
-	log.Println("Connected to database successfully")
+	log.Println("Connected to MySQL successfully")
 }

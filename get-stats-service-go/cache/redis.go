@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"get-stats-service-go/model"
+	"get-stats-service/model"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -88,14 +88,6 @@ func GetMonthlyStatsFromCache(year, month int) (*model.MonthlyStats, error) {
 // SetMonthlyStatsToCache stores monthly stats in Redis
 func SetMonthlyStatsToCache(year, month int, stats *model.MonthlyStats) error {
 	key := fmt.Sprintf("stats:monthly:%d-%02d", year, month)
-
-	now := time.Now()
-	currentYear, currentMonth := now.Year(), int(now.Month())
-
-	if year == currentYear && month == currentMonth {
-		log.Printf("Skip caching stats for current month: %d-%02d", year, month)
-		return nil
-	}
 
 	ttl := TTLOtherMonth
 

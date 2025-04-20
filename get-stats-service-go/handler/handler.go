@@ -7,8 +7,9 @@ import (
 	"net/http"
 	"time"
 
-	"get-stats-service-go/model"
-	"get-stats-service-go/repository"
+	"get-stats-service/cache"
+	"get-stats-service/model"
+	"get-stats-service/repository"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -33,11 +34,56 @@ func GetMonthlyStats(w http.ResponseWriter, r *http.Request, _ httprouter.Params
 
 	year, month := date.Year(), int(date.Month())
 
-	// Get stats from repository
-	stats, err := repository.GetMonthlyStats(year, month)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Failed to fetch stats", err)
+	// Get current year and month
+	now := time.Now()
+	currentYear, currentMonth := now.Year(), int(now.Month())
+
+	if year > currentYear || (year == currentYear && month > currentMonth) {
+		respondWithError(w, http.StatusBadRequest, "Requested year and month cannot be in the future", errors.New("invalid year and month"))
+		log.Printf("Requested year and month cannot be in the future: %d-%02d", year, month)
 		return
+	}
+
+	// Check if requested stats are not for the current month
+	if year != currentYear || month != currentMonth {
+		// Try to get from cache first for non-current months
+		cachedStats, err := cache.GetMonthlyStatsFromCache(year, month)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Failed to fetch stats", err)
+			return
+		} else if cachedStats != nil {
+			response := model.ResponseData{
+				Status:  http.StatusOK,
+				Message: "Get monthly stats successfully",
+				Data:    cachedStats,
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(response)
+		}
+	}
+
+	// Get stats from repository
+	var stats *model.MonthlyStats
+	if year == currentYear && month == currentMonth {
+		stats, err = repository.GetMonthlyStatsForCurrentMonth(year, month)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Failed to fetch stats", err)
+			return
+		}
+	} else {
+		stats, err = repository.GetMonthlyStatsForNonCurrentMonth(year, month)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Failed to fetch stats", err)
+			return
+		}
+	}
+
+	// If not current month, cache the results
+	if year != currentYear || month != currentMonth {
+		if err := cache.SetMonthlyStatsToCache(year, month, stats); err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Failed to fetch stats", err)
+			return
+		}
 	}
 
 	// Create response
