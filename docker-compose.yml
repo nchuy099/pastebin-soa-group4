@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  public-service:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    env_file: .env
+    ports:
+      - "3002:3001"  # Expose internally; Nginx will proxy to this service.
+    networks:
+      - pastebin-network
+    restart: unless-stopped
+
+  nginx-proxy:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/pastebin.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - pastebin-network
+    depends_on:
+      - public-service
+    restart: unless-stopped
+
+networks:
+  pastebin-network:
+    external: true
