@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -35,7 +36,12 @@ func CreatePaste(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		log.Printf("Error decoding request body: %v", err.Error())
 		return
 	}
-	defer r.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Printf("Error closing request body: %v", err.Error())
+		}
+	}(r.Body)
 
 	// Generate unique ID
 	var id string

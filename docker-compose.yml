@@ -111,11 +111,12 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: pastebin
+    command: ["--max-connections=2000", "--innodb_buffer_pool_size=5G", "--innodb_buffer_pool_instances=8", "--innodb_log_buffer_size=128M"]
     volumes:
       - ./pastebin_db.sql:/docker-entrypoint-initdb.d/pastebin_db.sql
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-ppassword" ]
       interval: 5s
-      timeout: 3s
+      timeout: 5s
       retries: 5

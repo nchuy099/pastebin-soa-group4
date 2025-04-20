@@ -23,10 +23,10 @@ func InitDB() {
 		log.Fatalf("Failed to connect to MySQL: %v", err)
 	}
 
-	// // Set connection pool parameters
-	// DB.SetMaxOpenConns(10)
-	// DB.SetMaxIdleConns(5)
-	// DB.SetConnMaxLifetime(300)
+	// Set connection pool parameters
+	DB.SetMaxOpenConns(20)
+	DB.SetMaxIdleConns(8)
+	DB.SetConnMaxLifetime(600)
 
 	if err = DB.Ping(); err != nil {
 		log.Fatalf("Database unreachable: %v", err)

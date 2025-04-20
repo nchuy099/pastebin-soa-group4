@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"errors"
 	"log"
 
 	"create-paste-service-go/db"
@@ -15,7 +16,7 @@ func ExistsById(id string) (bool, error) {
 	var pasteId string
 	row := db.DB.QueryRow(query, id).Scan(&pasteId)
 
-	if row == sql.ErrNoRows {
+	if errors.Is(row, sql.ErrNoRows) {
 		return false, nil
 	}
 
