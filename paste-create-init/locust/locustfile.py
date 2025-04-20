@@ -1,47 +1,52 @@
 from locust import HttpUser, task, between
 import random
 import string
-from bs4 import BeautifulSoup
+import csv
+import os
 
 class PastebinUser(HttpUser):
+<<<<<<< HEAD:paste-create-init/locust/locustfile.py
     wait_time = between(1, 5)  # Thời gian chờ giữa các task (1-5 giây)
     host = "http://localhost:8080"  # Địa chỉ ứng dụng pastebin
     paste_ids = []  # Lưu trữ danh sách ID paste // nen clear volume cua pastebin truoc khi test
+=======
+    # Sử dụng API Gateway URL
+    host = os.environ.get("API_GATEWAY_URL", "http://nginx")
+    wait_time = between(1, 5)
+    
+>>>>>>> microservice:locust/locustfile.py
 
-    def on_start(self):
-        """Chạy khi mỗi user bắt đầu"""
-        self.client.get("/")
-        self.update_public_paste_ids()
+    # Class-level variable shared across all users
+    paste_ids = []
 
-    def update_public_paste_ids(self):
-        """Cập nhật danh sách paste IDs từ route /public"""
-        response = self.client.get("/public")
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.text, "html.parser")
-            links = soup.select("a[href^='/paste/']")
-            self.paste_ids = [link["href"].split("/")[-1] for link in links]
-            if not self.paste_ids:
-                print("No public pastes found yet")
-        else:
-            print(f"Failed to fetch /public: {response.status_code}")
-
-    @task(2)
-    def view_create_form(self):
-        """Mô phỏng xem trang tạo paste"""
-        response = self.client.get("/")
-        if response.status_code != 200:
-            print(f"Failed to load create form: {response.status_code}")
+    @classmethod
+    def on_start(cls):
+        """Load paste IDs from the CSV file once for all users"""
+        if not cls.paste_ids:  # Only load if paste_ids are not already loaded
+            csv_path = 'paste_id.csv'
+            with open(csv_path, "r") as f:
+                cls.paste_ids = [line.strip() for line in f if line.strip()]
+            
+            # Optional: Log the number of paste IDs loaded
+            print(f"Loaded {len(cls.paste_ids)} paste IDs.")
 
     @task(3)
     def create_paste(self):
-        """Mô phỏng tạo paste mới"""
+        """Create a new paste via POST /create-paste/api/paste"""
         content = ''.join(random.choices(string.ascii_letters + string.digits, k=200))
         title = ''.join(random.choices(string.ascii_letters, k=10)) if random.random() > 0.5 else ""
-        language = random.choice(["text", "javascript", "python", "java", "cpp", "sql"])  # Khớp với JSP
-        expires_in = random.choice(["", "1", "60", "1440", "10080", "43200", "525600"])  # Khớp với JSP
-        visibility = random.choice(["public", "unlisted"]) if random.random() > 0.5 else "public"  # Khớp với JSP
+        language = random.choice(["text", "javascript", "python", "java", "cpp", "sql"])
+        
+        # Tạo phân phối xác suất giảm dần cho thời gian hết hạn
+        # Các giá trị: "" (không hết hạn), "1" (1 phút), "60" (1 giờ), "1440" (1 ngày), "10080" (1 tuần), "43200" (1 tháng)
+        # Xác suất giảm dần: không hết hạn (5%), 1 phút (40%), 1 giờ (25%), 1 ngày (15%), 1 tuần (10%), 1 tháng (5%)
+        expires_options = ["", "1", "60", "1440", "10080", "43200"]
+        expires_weights = [5, 40, 25, 15, 10, 5]  # Tổng = 100%
+        expires_in = random.choices(expires_options, weights=expires_weights, k=1)[0]
+        
+        visibility = random.choice(["PUBLIC", "UNLISTED"]) if random.random() > 0.5 else "PUBLIC"
 
-        form_data = {
+        data = {
             "content": content,
             "title": title,
             "language": language,
@@ -49,67 +54,99 @@ class PastebinUser(HttpUser):
             "visibility": visibility
         }
 
-        print(f"Sending paste - Title: {title}, Content: {content}, Language: {language}, Expires_in: {expires_in}, Visibility: {visibility}")
+        with self.client.post(
+            f"{self.host}/create-paste/api/paste",
+            json=data,
+            catch_response=True,
+            name="Create Paste"
+        ) as response:
+            try:
+                if response.status_code == 200 or response.status_code == 201:
+                    # Nếu API trả về ID của paste mới, thêm vào danh sách
+                    try:
+                        paste_id = response.json().get('data').get('id')
+                        if paste_id:
+                            self.paste_ids.append(paste_id)
+                    except:
+                        pass
+                    response.success()
+                    print(f"[Success] Created new paste (status={response.status_code})")
+                elif response.status_code == 0:
+                    response.failure("Connection failed: No response")
+                    print(f"[Error] Failed to create paste (status={response.status_code})")
+                else:
+                    try:
+                        error_msg = response.json().get("error", "No error message")
+                    except Exception:
+                        error_msg = response.text or "Invalid or empty response"
+                    response.failure(f"Failed with status {response.status_code}: {error_msg}")
+                    print(f"[Error] Failed to create paste (status={response.status_code}): {error_msg}")
+            except Exception as e:
+                response.failure(f"Exception: {str(e)}")
+                print(f"[Error] Exception when creating paste: {str(e)}")
 
-        response = self.client.post(
-            "/paste",
-            data=form_data,
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-            allow_redirects=False  # Tắt tự động redirect
-        )
+    @task(6)
+    def get_paste_by_id(self):
+        if not PastebinUser.paste_ids:
+            return
 
-        if response.status_code == 302:  # Redirect khi thành công
-            paste_url = response.headers.get("Location")
-            if paste_url:
-                paste_id = paste_url.split("/")[-1]
-                self.client.get(
-                    paste_url,
-                    name="/paste/id"
-                )
-                self.paste_ids.append(paste_id)
-        elif response.status_code == 200:  # Trường hợp lỗi mềm (như content rỗng)
-            soup = BeautifulSoup(response.text, "html.parser")
-            error = soup.select_one(".alert-danger")
-            if error:
-                print(f"Create paste failed with error: {error.text.strip()}")
-            else:
-                print("Create paste returned 200 but no redirect - unexpected behavior")
-        else:
-            print(f"Failed to create paste: {response.status_code}")
+        paste_id = random.choice(PastebinUser.paste_ids)
+        with self.client.get(
+            f"{self.host}/get-paste/api/paste/{paste_id}",
+            catch_response=True,
+            name="Get Paste by ID"
+        ) as response:
+            try:
+                if response.status_code == 200:
+                    response.success()
+                    print(f"[Success] Retrieved paste {paste_id} (status={response.status_code})")
+                elif response.status_code == 403:
+                    response.success()
+                    print(f"[Success] Paste {paste_id} deleted or expired (status={response.status_code})")
+                elif response.status_code == 404:
+                    response.success()
+                    print(f"[Success] Paste {paste_id} not found (status={response.status_code})")
+                elif response.status_code == 0:
+                    response.failure("Connection failed: No response")
+                    print(f"[Error] Failed to get paste {paste_id} (status={response.status_code})")
+                else:
+                    try:
+                        error_msg = response.json().get("error", "No error message")
+                    except Exception:
+                        error_msg = response.text or "Invalid or empty response"
+                    response.failure(f"Failed with status {response.status_code}: {error_msg}")
+                    print(f"[Error] Failed to get paste {paste_id} (status={response.status_code}): {error_msg}")
+            except Exception as e:
+                response.failure(f"Exception: {str(e)}")
+                print(f"[Error] Exception when getting paste {paste_id}: {str(e)}")
 
-    @task(2)
-    def view_paste(self):
-        """Mô phỏng xem một paste ngẫu nhiên"""
-        if self.paste_ids:
-            paste_id = random.choice(self.paste_ids)
-            response = self.client.get(
-                f"/paste/{paste_id}",
-                name="/paste/id"
-            )
-            if response.status_code != 200:
-                print(f"Failed to load paste {paste_id}: {response.status_code}")
-        else:
-            self.create_paste()
 
-    @task(1)
-    def view_public_pastes(self):
-        """Mô phỏng xem danh sách paste công khai"""
-        response = self.client.get("/public")
-        if response.status_code == 200:
-            self.update_public_paste_ids()
-        else:
-            print(f"Failed to load public pastes: {response.status_code}")
-
-    @task(1)
-    def view_monthly_stats(self):
-        """Mô phỏng xem thống kê theo tháng"""
-        if random.random() > 0.5:
-            year = random.randint(2020, 2025)
-            month = f"{year}-{random.randint(1, 12):02d}"
-            url = f"/stats/{month}"
-        else:
-            url = "/stats"
+    @task(3)
+    def get_monthly_stats(self):
+        """Get monthly stats from GET /stats/api/paste/stats?month=YYYY-MM"""
+        year = random.randint(2020, 2025)
+        month = f"{random.randint(1, 12):02d}"
+        date = f"{year}-{month}"
         
-        response = self.client.get(url, name="/stats")
-        if response.status_code != 200:
-            print(f"Failed to load stats for {url}: {response.status_code}")
+        with self.client.get(
+            f"{self.host}/stats/api/paste/stats?month={date}",
+            catch_response=True,
+            name="Get Monthly Stats"
+        ) as response:
+            try:
+                if response.status_code == 200:
+                    response.success()
+                    print(f"[Success] Retrieved monthly stats for {date} (status={response.status_code})")
+                elif response.status_code == 0:
+                    response.failure("Connection failed: No response")
+                    print(f"[Error] Failed to get stats for {date} (status={response.status_code})")
+                else:
+                    try:
+                        error_msg = response.json().get("error", "No error message")
+                    except Exception:
+                        error_msg = response.text or "Invalid or empty response"
+                    response.failure(f"Failed with status {response.status_code}: {error_msg}")
+                    print(f"[Error] Failed to get stats for {date} (status={response.status_code}): {error_msg}")
+            except Exception as e:
+                response.failure(f"Exception: {str(e)}")
+                print(f"[Error] Exception when getting stats for {date}: {str(e)}")

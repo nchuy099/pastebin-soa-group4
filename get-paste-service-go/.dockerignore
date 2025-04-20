@@ -1,0 +1,13 @@
+# Test files and directories
+*_test.go
+test/
+tests/
+
+# Local development environment 
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Service-specific logs
+logs/ 
