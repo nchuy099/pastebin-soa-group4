@@ -4,16 +4,30 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
+	"get-paste-service/cache"
 	"get-paste-service/config"
 	"get-paste-service/db"
+	"get-paste-service/queue"
 	"get-paste-service/router"
 )
 
 func main() {
+	// Load configuration
 	config.LoadEnv()
-	db.InitDB()
 
+	// Initialize components
+	db.InitDB()
+	cache.InitRedis()
+	queue.InitRabbitMQ()
+
+	// Set up graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	// Set up HTTP server
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8082"
@@ -21,6 +35,20 @@ func main() {
 
 	r := router.SetupRouter()
 
-	log.Printf("Get Paste Service started at :%s", port)
-	log.Fatal(http.ListenAndServe(":"+port, r))
+	// Start the server in a goroutine
+	go func() {
+		log.Printf("Get Paste Service started at :%s", port)
+		if err := http.ListenAndServe(":"+port, r); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Server error: %v", err)
+		}
+	}()
+
+	// Wait for shutdown signal
+	<-quit
+	log.Println("Shutting down server...")
+
+	// Close connections
+	queue.CloseRabbitMQ()
+
+	log.Println("Server shutdown complete")
 }

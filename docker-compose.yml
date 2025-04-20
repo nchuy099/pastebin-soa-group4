@@ -1,5 +1,62 @@
 services:
+  ######################
+  # Infrastructure Services
+  ######################
 
+  # Redis for caching
+  redis:
+    image: redis:7.0-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --save 60 1 --loglevel warning
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # RabbitMQ for message queue
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672" # AMQP protocol port
+      - "15672:15672" # Management UI port
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    healthcheck:
+      test: [ "CMD", "rabbitmqctl", "status" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: pastebin
+    volumes:
+      - ./pastebin_db.sql:/docker-entrypoint-initdb.d/pastebin_db.sql
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-ppassword" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  ######################
+  # Application Services
+  ######################
+
+  # Create Paste Service API - Only handles API requests, caches in Redis, and queues to RabbitMQ
   create-paste-service:
     build:
       context: ./create-paste-service-go
@@ -7,16 +64,51 @@ services:
     ports:
       - "8081:8081"
     environment:
+      - PORT=8081
+      - REDIS_HOST=redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - REDIS_CACHE_PASTE_TTL_SECONDS=180
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Create Worker Service - Independent service that handles database insertion
+  create-worker:
+    build:
+      context: ./create-worker-service-go
+      dockerfile: Dockerfile
+    environment:
       - DB_HOST=mysql
       - DB_PORT=3306
       - DB_USER=root
-      - DB_PASS=password
+      - DB_PASSWORD=password
       - DB_NAME=pastebin
-      - PORT=8081
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - NUM_WORKERS=1 # 5 goroutines per container
+      - BATCH_SIZE=100 # Process 100 pastes per batch
+      - BATCH_TIMEOUT_SECS=5 # Flush batch after 3 seconds if not full
     depends_on:
       mysql:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
+    restart: unless-stopped
+    deploy:
+      mode: replicated
+      replicas: 1 # 3 containers, each with 5 goroutines = 15 workers total
+      # resources:
+      #   limits:
+      #     cpus: '0.30'
+      #     memory: 256M
+      #   reservations:
+      #     cpus: '0.10'
+      #     memory: 128M
+
+      # Get Paste Service
   get-paste-service:
     build:
       context: ./get-paste-service-go
@@ -24,16 +116,49 @@ services:
     ports:
       - "8082:8082"
     environment:
+      - PORT=8082
       - DB_HOST=mysql
       - DB_PORT=3306
       - DB_USER=root
-      - DB_PASS=password
+      - DB_PASSWORD=password
       - DB_NAME=pastebin
-      - PORT=8082
+      - REDIS_HOST=redis:6379
+      - REDIS_PASSWORD=
+      - REDIS_CACHE_PASTE_TTL_SECONDS=180
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
     depends_on:
       mysql:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
 
+  # Get Paste Worker - Independent service that handles view count updates
+  get-paste-worker:
+    build:
+      context: ./get-paste-worker-go
+      dockerfile: Dockerfile
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - DB_NAME=pastebin
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - NUM_WORKERS=1 # 8 goroutines per container
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      mode: replicated
+      replicas: 1 # 2 containers, each with 8 goroutines = 16 workers total
+
+  # Get Stats Service
   get-stats-service:
     build:
       context: ./get-stats-service-go
@@ -41,16 +166,23 @@ services:
     ports:
       - "8083:8083"
     environment:
+      - PORT=8083
       - DB_HOST=mysql
       - DB_PORT=3306
       - DB_USER=root
-      - DB_PASS=password
+      - DB_PASSWORD=password
       - DB_NAME=pastebin
-      - PORT=8083
+      - REDIS_HOST=redis:6379
+      - REDIS_PASSWORD=
+      - REDIS_CACHE_STATS_TTL_OTHER_MONTH_SECONDS=60
     depends_on:
       mysql:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
 
+  # Cleanup Expired Service
   cleanup-expired-service:
     build:
       context: ./cleanup-expired-service-go
@@ -61,14 +193,16 @@ services:
       - DB_HOST=mysql
       - DB_PORT=3306
       - DB_USER=root
-      - DB_PASS=password
+      - DB_PASSWORD=password
       - DB_NAME=pastebin
       - CLEANUP_INTERVAL_MINS=0.25
       - PORT=8084
     depends_on:
       mysql:
         condition: service_healthy
+    restart: unless-stopped
 
+  # Nginx reverse proxy
   nginx:
     image: nginx:latest
     ports:
@@ -83,6 +217,7 @@ services:
       - cleanup-expired-service
     restart: unless-stopped
 
+  # Locust for load testing
   locust:
     build:
       context: ./locust
@@ -95,22 +230,6 @@ services:
       - default
     command: locust -f locustfile.py
 
-  mysql:
-    image: mysql:8.0
-    ports:
-      - "3307:3306"
-    environment:
-      MYSQL_ROOT_PASSWORD: password
-      MYSQL_DATABASE: pastebin
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./pastebin_db.sql:/docker-entrypoint-initdb.d/pastebin_db.sql
-    restart: unless-stopped
-    healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-ppassword" ]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-
 volumes:
+  redis_data:
   mysql_data:

@@ -21,7 +21,6 @@ type Paste struct {
 	Language   string     `json:"language"`
 	CreatedAt  time.Time  `json:"created_at"`
 	ExpiresAt  *time.Time `json:"expires_at,omitempty"`
-	Views      int        `json:"views"`
 	Visibility Visibility `json:"visibility"`
 }
 

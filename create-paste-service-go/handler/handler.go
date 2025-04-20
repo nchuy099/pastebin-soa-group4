@@ -9,8 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"create-paste-service-go/cache"
 	"create-paste-service-go/model"
-	"create-paste-service-go/repository"
+	"create-paste-service-go/queue"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -38,26 +39,10 @@ func CreatePaste(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	defer r.Body.Close()
 
 	// Generate unique ID
-	var id string
-	var err error
-	var exists bool
-
-	for {
-		id, err = GenerateUniqueID(8)
-		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, "Failed to generate ID", err)
-			return
-		}
-
-		exists, err = repository.ExistsById(id)
-		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, "Failed to check ID availability", err)
-			return
-		}
-
-		if !exists {
-			break
-		}
+	id, err := GenerateUniqueID(8)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to generate ID", err)
+		return
 	}
 
 	// Set defaults if values are empty
@@ -75,10 +60,12 @@ func CreatePaste(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		visibility = model.Unlisted
 	}
 
+	createdAt := time.Now().UTC()
+
 	// Calculate expiresAt
 	var expiresAt *time.Time
 	if request.ExpiresIn > 0 {
-		expires := time.Now().Add(time.Duration(request.ExpiresIn) * time.Minute)
+		expires := createdAt.Add(time.Duration(request.ExpiresIn) * time.Minute)
 		expiresAt = &expires
 	}
 
@@ -88,21 +75,28 @@ func CreatePaste(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		Content:    request.Content,
 		Title:      request.Title,
 		Language:   request.Language,
-		CreatedAt:  time.Now(),
+		CreatedAt:  createdAt,
 		ExpiresAt:  expiresAt,
-		Views:      0,
 		Visibility: visibility,
 	}
 
-	// Save to database
-	if err := repository.SavePaste(paste); err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Failed to save paste", err)
+	// First, cache the paste in Redis for immediate availability
+	err = cache.CachePaste(paste)
+	if err != nil {
+		log.Printf("Warning: Failed to cache paste in Redis: %v", err)
+		// Continue even if Redis caching fails
+	}
+
+	// Then, publish to RabbitMQ for async processing
+	err = queue.PublishPaste(paste)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to queue paste creation", err)
 		return
 	}
 
-	// Return success response
+	// Return success response immediately
 	response := model.ResponseData{
-		Status:  http.StatusOK,
+		Status:  http.StatusCreated,
 		Message: "Paste created successfully",
 		Data: struct {
 			ID string `json:"id"`
@@ -110,7 +104,7 @@ func CreatePaste(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(response)
 }
 

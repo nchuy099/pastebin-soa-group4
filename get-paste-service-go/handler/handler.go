@@ -3,7 +3,9 @@ package handler
 import (
 	"database/sql"
 	"encoding/json"
+	"log"
 	"net/http"
+	"time"
 
 	"get-paste-service/model"
 	"get-paste-service/repository"
@@ -24,6 +26,22 @@ func GetPasteHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Param
 			respondWithError(w, http.StatusInternalServerError, "Internal server error", err)
 		}
 		return
+	}
+
+	// Add paste view asynchronously
+	remoteAddr := r.RemoteAddr
+	userAgent := r.UserAgent()
+
+	err = repository.AddPasteView(&model.PasteViews{
+		PasteID:  pasteID,
+		ViewedAt: time.Now().UTC(),
+	}, remoteAddr, userAgent)
+
+	if err != nil {
+		// Just log the error but continue to serve the paste
+		// This way view counts might be slightly off but the user experience is not affected
+		// The worker will retry publishing view updates
+		log.Printf("Error recording paste view: %v", err)
 	}
 
 	response := model.ResponseData{

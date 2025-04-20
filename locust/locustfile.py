@@ -60,7 +60,7 @@ class PastebinUser(HttpUser):
                     try:
                         paste_id = response.json().get('data').get('id')
                         if paste_id:
-                            self.paste_ids.append(paste_id)
+                            PastebinUser.paste_ids.append(paste_id)
                     except:
                         pass
                     response.success()

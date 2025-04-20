@@ -1,19 +1,24 @@
 CREATE DATABASE IF NOT EXISTS pastebin;
 USE pastebin;
 
+DROP TABLE IF EXISTS paste_views;
 DROP TABLE IF EXISTS paste;
 
 CREATE TABLE paste (
-  id varchar(10) NOT NULL,
-  content text NOT NULL,
-  title varchar(255) DEFAULT 'Untitled',
-  language varchar(50) DEFAULT 'text',
-  created_at datetime DEFAULT CURRENT_TIMESTAMP,
-  expires_at datetime DEFAULT NULL,
-  views int DEFAULT 0,
-  visibility enum('PUBLIC','UNLISTED') DEFAULT 'PUBLIC',
-  PRIMARY KEY (id),
-  INDEX idx_created_at (created_at),
-  INDEX idx_id_expires (id, expires_at)
+  id VARCHAR(10) NOT NULL,
+  content TEXT NOT NULL,
+  title VARCHAR(255) DEFAULT 'Untitled',
+  language VARCHAR(50) DEFAULT 'text',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  expires_at TIMESTAMP DEFAULT NULL,
+  visibility ENUM('PUBLIC','UNLISTED') DEFAULT 'PUBLIC',
+  PRIMARY KEY (id)
+);
 
-) ENGINE=InnoDB;  
+CREATE TABLE paste_views (
+  id INT NOT NULL AUTO_INCREMENT,
+  paste_id VARCHAR(10) NOT NULL,
+  viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  FOREIGN KEY (paste_id) REFERENCES paste(id) ON DELETE CASCADE
+);
