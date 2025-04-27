@@ -1,0 +1,38 @@
+/* react-ui/src/App.css */
+
+.App {
+  text-align: center;
+  padding: 2rem;
+  font-family: Arial, sans-serif;
+}
+
+.section {
+  margin-bottom: 2rem;
+}
+
+textarea {
+  margin-top: 1rem;
+}
+
+input {
+  margin-top: 1rem;
+}
+
+button {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.retrieved {
+  margin-top: 1rem;
+  background-color: #f0f0f0;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.error {
+  color: red;
+  margin-top: 1rem;
+}
