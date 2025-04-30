@@ -16,7 +16,14 @@ import (
 var gmt7 = time.FixedZone("GMT+7", 7*60*60)
 
 // GetStats handles requests for paste view statistics
-func GetStats(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func GetStats(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	// Get paste ID from URL parameters
+	pasteID := ps.ByName("id")
+	if pasteID == "" {
+		respondWithError(w, http.StatusBadRequest, "Paste ID is required", nil)
+		return
+	}
+
 	// Get the mode from query parameters
 	mode := r.URL.Query().Get("mode")
 
@@ -28,16 +35,16 @@ func GetStats(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	switch mode {
 	case "last-10-minutes":
-		stats, err = repository.GetStatsForLast10Minutes(currentTime)
+		stats, err = repository.GetStatsForLast10Minutes(pasteID, currentTime)
 	case "last-24-hours":
-		stats, err = repository.GetStatsForLastDay(currentTime)
+		stats, err = repository.GetStatsForLastDay(pasteID, currentTime)
 	case "last-7-days":
-		stats, err = repository.GetStatsForLastWeek(currentTime)
+		stats, err = repository.GetStatsForLastWeek(pasteID, currentTime)
 	case "last-30-days":
-		stats, err = repository.GetStatsForLastMonth(currentTime)
+		stats, err = repository.GetStatsForLastMonth(pasteID, currentTime)
 	default:
 		// Default to last 10 minutes if no mode specified
-		stats, err = repository.GetStatsForLast10Minutes(currentTime)
+		stats, err = repository.GetStatsForLast10Minutes(pasteID, currentTime)
 	}
 
 	if err != nil {
@@ -51,6 +58,7 @@ func GetStats(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		Status:  http.StatusOK,
 		Message: "Stats retrieved successfully (GMT+7 timezone)",
 		Data: model.Stats{
+			PasteID:    pasteID,
 			TimeViews:  stats.TimeViews,
 			TotalViews: stats.TotalViews,
 			Timezone:   "GMT+7",
@@ -64,7 +72,11 @@ func GetStats(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 // Helper function to respond with an error
 func respondWithError(w http.ResponseWriter, code int, message string, err error) {
-	ersMsg := err.Error()
+	var ersMsg string
+	if err != nil {
+		ersMsg = err.Error()
+	}
+
 	response := model.ResponseData{
 		Status:  code,
 		Message: message,

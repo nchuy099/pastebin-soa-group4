@@ -10,7 +10,7 @@ import (
 // Định nghĩa múi giờ GMT+7
 var gmt7 = time.FixedZone("GMT+7", 7*60*60)
 
-func GetStatsForLast10Minutes(currentTime time.Time) (*model.Stats, error) {
+func GetStatsForLast10Minutes(pasteID string, currentTime time.Time) (*model.Stats, error) {
 	// Chuyển đổi thời gian hiện tại sang GMT+7
 	currentTime = currentTime.In(gmt7)
 
@@ -24,12 +24,12 @@ func GetStatsForLast10Minutes(currentTime time.Time) (*model.Stats, error) {
 			DATE_FORMAT(CONVERT_TZ(viewed_at, '+00:00', '+07:00'), '%H:%i') AS time_label,
 			COUNT(*) AS views
 		FROM paste_views
-		WHERE viewed_at >= ? AND viewed_at < ?
+		WHERE paste_id = ? AND viewed_at >= ? AND viewed_at < ?
 		GROUP BY time_key, time_label
 		ORDER BY time_key ASC
 	`
 
-	rows, err := db.DB.Query(query, startTime.UTC(), endTime.UTC())
+	rows, err := db.DB.Query(query, pasteID, startTime.UTC(), endTime.UTC())
 	if err != nil {
 		log.Printf("Error querying DB: %v", err)
 		return nil, err
@@ -64,12 +64,13 @@ func GetStatsForLast10Minutes(currentTime time.Time) (*model.Stats, error) {
 	}
 
 	return &model.Stats{
+		PasteID:    pasteID,
 		TimeViews:  timeViews,
 		TotalViews: totalViews,
 	}, nil
 }
 
-func GetStatsForLastDay(currentTime time.Time) (*model.Stats, error) {
+func GetStatsForLastDay(pasteID string, currentTime time.Time) (*model.Stats, error) {
 	// Chuyển đổi thời gian hiện tại sang GMT+7
 	currentTime = currentTime.In(gmt7)
 
@@ -81,12 +82,12 @@ func GetStatsForLastDay(currentTime time.Time) (*model.Stats, error) {
 			DATE_FORMAT(CONVERT_TZ(viewed_at, '+00:00', '+07:00'), '%Y-%m-%d %H:00') AS time_label,
 			COUNT(*) AS views
 		FROM paste_views
-		WHERE viewed_at >= ? AND viewed_at < ?
+		WHERE paste_id = ? AND viewed_at >= ? AND viewed_at < ?
 		GROUP BY time_label
 		ORDER BY time_label ASC
 	`
 
-	rows, err := db.DB.Query(query, startTime.UTC(), endTime.UTC())
+	rows, err := db.DB.Query(query, pasteID, startTime.UTC(), endTime.UTC())
 	if err != nil {
 		log.Printf("Error querying DB: %v", err)
 		return nil, err
@@ -122,12 +123,13 @@ func GetStatsForLastDay(currentTime time.Time) (*model.Stats, error) {
 	}
 
 	return &model.Stats{
+		PasteID:    pasteID,
 		TimeViews:  timeViews,
 		TotalViews: totalViews,
 	}, nil
 }
 
-func GetStatsForLastWeek(currentTime time.Time) (*model.Stats, error) {
+func GetStatsForLastWeek(pasteID string, currentTime time.Time) (*model.Stats, error) {
 	// Chuyển đổi thời gian hiện tại sang GMT+7
 	currentTime = currentTime.In(gmt7)
 
@@ -139,12 +141,12 @@ func GetStatsForLastWeek(currentTime time.Time) (*model.Stats, error) {
 			DATE_FORMAT(CONVERT_TZ(viewed_at, '+00:00', '+07:00'), '%Y-%m-%d') AS time_label,
 			COUNT(*) AS views
 		FROM paste_views
-		WHERE viewed_at >= ? AND viewed_at < ?
+		WHERE paste_id = ? AND viewed_at >= ? AND viewed_at < ?
 		GROUP BY time_label
 		ORDER BY time_label ASC
 	`
 
-	rows, err := db.DB.Query(query, startTime.UTC(), endTime.UTC())
+	rows, err := db.DB.Query(query, pasteID, startTime.UTC(), endTime.UTC())
 	if err != nil {
 		log.Printf("Error querying DB: %v", err)
 		return nil, err
@@ -180,12 +182,13 @@ func GetStatsForLastWeek(currentTime time.Time) (*model.Stats, error) {
 	}
 
 	return &model.Stats{
+		PasteID:    pasteID,
 		TimeViews:  timeViews,
 		TotalViews: totalViews,
 	}, nil
 }
 
-func GetStatsForLastMonth(currentTime time.Time) (*model.Stats, error) {
+func GetStatsForLastMonth(pasteID string, currentTime time.Time) (*model.Stats, error) {
 	// Chuyển đổi thời gian hiện tại sang GMT+7
 	currentTime = currentTime.In(gmt7)
 
@@ -197,12 +200,12 @@ func GetStatsForLastMonth(currentTime time.Time) (*model.Stats, error) {
 			DATE_FORMAT(CONVERT_TZ(viewed_at, '+00:00', '+07:00'), '%Y-%m-%d') AS time_label,
 			COUNT(*) AS views
 		FROM paste_views
-		WHERE viewed_at >= ? AND viewed_at < ?
+		WHERE paste_id = ? AND viewed_at >= ? AND viewed_at < ?
 		GROUP BY time_label
 		ORDER BY time_label ASC
 	`
 
-	rows, err := db.DB.Query(query, startTime.UTC(), endTime.UTC())
+	rows, err := db.DB.Query(query, pasteID, startTime.UTC(), endTime.UTC())
 	if err != nil {
 		log.Printf("Error querying DB: %v", err)
 		return nil, err
@@ -238,6 +241,7 @@ func GetStatsForLastMonth(currentTime time.Time) (*model.Stats, error) {
 	}
 
 	return &model.Stats{
+		PasteID:    pasteID,
 		TimeViews:  timeViews,
 		TotalViews: totalViews,
 	}, nil

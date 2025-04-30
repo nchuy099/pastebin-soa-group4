@@ -12,8 +12,8 @@ import (
 func SetupRouter() *httprouter.Router {
 	router := httprouter.New()
 
-	// Stats endpoint
-	router.GET("/api/paste/stats", handler.GetStats)
+	// Stats endpoint with paste ID in path
+	router.GET("/api/paste/:id/stats", handler.GetStats)
 
 	// Health check
 	router.GET("/health", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

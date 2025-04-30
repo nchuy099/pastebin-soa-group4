@@ -7,6 +7,7 @@ type TimeView struct {
 }
 
 type Stats struct {
+	PasteID    string     `json:"pasteId,omitempty"`
 	TimeViews  []TimeView `json:"timeViews"`
 	TotalViews int64      `json:"totalViews"`
 	Timezone   string     `json:"timezone,omitempty"`
