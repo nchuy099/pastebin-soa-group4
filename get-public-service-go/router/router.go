@@ -3,17 +3,15 @@ package router
 import (
 	"net/http"
 
-	"get-stats-service/handler"
+	"get-public-service/handler"
 
 	"github.com/julienschmidt/httprouter"
 )
 
-// SetupRouter configures all the routes for the application
 func SetupRouter() *httprouter.Router {
 	router := httprouter.New()
 
-	// Stats endpoint
-	router.GET("/api/paste/stats", handler.GetStats)
+	router.GET("/api/paste", handler.GetPublicPastes)
 
 	// Health check
 	router.GET("/health", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

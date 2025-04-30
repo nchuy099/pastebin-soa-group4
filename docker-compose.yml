@@ -182,6 +182,23 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  get-public-service:
+    build:
+      context: ./get-public-service-go
+      dockerfile: Dockerfile
+    ports:
+      - "8079:8079"
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASS=password
+      - DB_NAME=pastebin
+      - PORT=8079
+    depends_on:
+      mysql:
+        condition: service_healthy
+
   # Cleanup Expired Service
   cleanup-expired-service:
     build:
