@@ -47,6 +47,8 @@ func GetStats(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		stats, err = repository.GetStatsForLast10Minutes(pasteID, currentTime)
 	}
 
+	totalViewsFromCreation, err := repository.GetTotalPasteViewsFromCreation(pasteID)
+
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to get stats", err)
 		log.Println("Error getting stats:", err)
@@ -58,10 +60,11 @@ func GetStats(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		Status:  http.StatusOK,
 		Message: "Stats retrieved successfully (GMT+7 timezone)",
 		Data: model.Stats{
-			PasteID:    pasteID,
-			TimeViews:  stats.TimeViews,
-			TotalViews: stats.TotalViews,
-			Timezone:   "GMT+7",
+			PasteID:                pasteID,
+			TimeViews:              stats.TimeViews,
+			TotalViews:             stats.TotalViews,
+			TotalViewsFromCreation: totalViewsFromCreation,
+			Timezone:               "GMT+7",
 		},
 	}
 

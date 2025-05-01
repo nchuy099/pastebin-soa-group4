@@ -10,6 +10,7 @@ import (
 	"get-paste-worker/config"
 	"get-paste-worker/consumer"
 	"get-paste-worker/db"
+	"get-paste-worker/repository"
 )
 
 // Default worker configuration
@@ -23,6 +24,10 @@ func main() {
 	// Load environment variables and initialize database
 	config.LoadEnv()
 	db.InitDB()
+	defer db.DB.Close()
+
+	// Configure batch processing
+	configureBatchSettings()
 
 	// Get number of workers from environment variable
 	numWorkers := DefaultNumWorkers
@@ -63,8 +68,37 @@ func main() {
 	<-quit
 	log.Println("Shutting down worker...")
 
+	// Flush any remaining batch items
+	if err := repository.Shutdown(); err != nil {
+		log.Printf("Error flushing batch: %v", err)
+	}
+
 	// Stop the worker pool
 	workerPool.Stop()
 
 	log.Println("Worker shutdown complete")
+}
+
+func configureBatchSettings() {
+	// Get batch size from environment
+	batchSizeStr := os.Getenv("BATCH_SIZE")
+	if batchSizeStr != "" {
+		if batchSize, err := strconv.Atoi(batchSizeStr); err == nil && batchSize > 0 {
+			repository.BatchSize = batchSize
+			log.Printf("Configured batch size: %d", batchSize)
+		}
+	} else {
+		log.Printf("Using default batch size: %d", repository.BatchSize)
+	}
+
+	// Get batch timeout from environment
+	batchTimeoutStr := os.Getenv("BATCH_TIMEOUT_SECS")
+	if batchTimeoutStr != "" {
+		if timeout, err := strconv.Atoi(batchTimeoutStr); err == nil && timeout > 0 {
+			repository.BatchTimeoutSecs = timeout
+			log.Printf("Configured batch timeout: %d seconds", timeout)
+		}
+	} else {
+		log.Printf("Using default batch timeout: %d seconds", repository.BatchTimeoutSecs)
+	}
 }

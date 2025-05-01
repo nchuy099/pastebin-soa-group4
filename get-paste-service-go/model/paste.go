@@ -8,7 +8,7 @@ type Paste struct {
 	Title      string     `json:"title"`
 	Language   string     `json:"language"`
 	CreatedAt  time.Time  `json:"created_at"`
-	ExpiresAt  *time.Time `json:"expires_at,omitempty"`
+	ExpiresAt  *time.Time `json:"expires_at"`
 	Visibility string     `json:"visibility"`
 }
 

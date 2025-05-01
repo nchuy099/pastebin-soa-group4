@@ -25,7 +25,7 @@ class PastebinUser(HttpUser):
             # Optional: Log the number of paste IDs loaded
             print(f"Loaded {len(cls.paste_ids)} paste IDs.")
 
-    @task(3)
+    @task(1)
     def create_paste(self):
         """Create a new paste via POST /create-paste/api/paste"""
         content = ''.join(random.choices(string.ascii_letters + string.digits, k=200))
@@ -80,7 +80,7 @@ class PastebinUser(HttpUser):
                 response.failure(f"Exception: {str(e)}")
                 print(f"[Error] Exception when creating paste: {str(e)}")
 
-    @task(6)
+    @task(10)
     def get_paste_by_id(self):
         if not PastebinUser.paste_ids:
             return
@@ -116,45 +116,45 @@ class PastebinUser(HttpUser):
                 print(f"[Error] Exception when getting paste {paste_id}: {str(e)}")
 
 
-    @task(3)
-    def get_monthly_stats(self):
-        """Get monthly stats from GET /stats/api/paste/stats?month=YYYY-MM, up to the current month"""
-        # Get current year and month
-        today = datetime.date.today()
-        current_year = today.year
-        current_month = today.month
+    # @task(3)
+    # def get_monthly_stats(self):
+    #     """Get monthly stats from GET /stats/api/paste/stats?month=YYYY-MM, up to the current month"""
+    #     # Get current year and month
+    #     today = datetime.date.today()
+    #     current_year = today.year
+    #     current_month = today.month
         
-        # Randomly generate a month that is not in the future (up to the current month)
-        year = random.randint(2020, current_year)
+    #     # Randomly generate a month that is not in the future (up to the current month)
+    #     year = random.randint(2020, current_year)
         
-        if year == current_year:
-            # If the random year is the current year, exclude months after the current month
-            month = random.randint(1, current_month)
-        else:
-            # If the year is not the current year, any month is valid
-            month = random.randint(1, 12)
+    #     if year == current_year:
+    #         # If the random year is the current year, exclude months after the current month
+    #         month = random.randint(1, current_month)
+    #     else:
+    #         # If the year is not the current year, any month is valid
+    #         month = random.randint(1, 12)
         
-        date = f"{year}-{month:02d}"
+    #     date = f"{year}-{month:02d}"
         
-        with self.client.get(
-            f"{self.host}/stats/api/paste/stats?month={date}",
-            catch_response=True,
-            name="Get Monthly Stats"
-        ) as response:
-            try:
-                if response.status_code == 200:
-                    response.success()
-                    print(f"[Success] Retrieved monthly stats for {date} (status={response.status_code})")
-                elif response.status_code == 0:
-                    response.failure("Connection failed: No response")
-                    print(f"[Error] Failed to get stats for {date} (status={response.status_code})")
-                else:
-                    try:
-                        error_msg = response.json().get("error", "No error message")
-                    except Exception:
-                        error_msg = response.text or "Invalid or empty response"
-                    response.failure(f"Failed with status {response.status_code}: {error_msg}")
-                    print(f"[Error] Failed to get stats for {date} (status={response.status_code}): {error_msg}")
-            except Exception as e:
-                response.failure(f"Exception: {str(e)}")
-                print(f"[Error] Exception when getting stats for {date}: {str(e)}")
+    #     with self.client.get(
+    #         f"{self.host}/stats/api/paste/stats?month={date}",
+    #         catch_response=True,
+    #         name="Get Monthly Stats"
+    #     ) as response:
+    #         try:
+    #             if response.status_code == 200:
+    #                 response.success()
+    #                 print(f"[Success] Retrieved monthly stats for {date} (status={response.status_code})")
+    #             elif response.status_code == 0:
+    #                 response.failure("Connection failed: No response")
+    #                 print(f"[Error] Failed to get stats for {date} (status={response.status_code})")
+    #             else:
+    #                 try:
+    #                     error_msg = response.json().get("error", "No error message")
+    #                 except Exception:
+    #                     error_msg = response.text or "Invalid or empty response"
+    #                 response.failure(f"Failed with status {response.status_code}: {error_msg}")
+    #                 print(f"[Error] Failed to get stats for {date} (status={response.status_code}): {error_msg}")
+    #         except Exception as e:
+    #             response.failure(f"Exception: {str(e)}")
+    #             print(f"[Error] Exception when getting stats for {date}: {str(e)}")

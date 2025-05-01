@@ -7,10 +7,11 @@ type TimeView struct {
 }
 
 type Stats struct {
-	PasteID    string     `json:"pasteId,omitempty"`
-	TimeViews  []TimeView `json:"timeViews"`
-	TotalViews int64      `json:"totalViews"`
-	Timezone   string     `json:"timezone,omitempty"`
+	PasteID                string     `json:"pasteId,omitempty"`
+	TimeViews              []TimeView `json:"timeViews"`
+	TotalViews             int64      `json:"totalViews"`
+	TotalViewsFromCreation int64      `json:"totalViewsFromCreation"`
+	Timezone               string     `json:"timezone,omitempty"`
 }
 
 // MonthlyStats represents detailed statistics for pastes in a given month

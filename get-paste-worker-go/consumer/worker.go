@@ -150,8 +150,8 @@ func processMessage(delivery amqp091.Delivery) error {
 		ViewedAt: message.ViewedAt,
 	}
 
-	// Update the database
-	err = repository.AddPasteViewDirect(pasteView)
+	// Update the database using batch insert
+	err = repository.AddPasteViewBatch(pasteView)
 	if err != nil {
 		log.Printf("Error adding paste view: %v", err)
 		return err

@@ -23,9 +23,9 @@ func InitDB() {
 		log.Fatalf("Failed to connect to MySQL: %v", err.Error())
 	}
 
-	// DB.SetMaxOpenConns(36)     // Maximum number of open connections (active or idle)
-	// DB.SetMaxIdleConns(18)     // Maximum number of idle connections
-	// DB.SetConnMaxLifetime(300) // Maximum lifetime (seconds) of each connection to avoid random timeouts
+	DB.SetMaxOpenConns(20)     // Maximum number of open connections (active or idle)
+	DB.SetMaxIdleConns(10)     // Maximum number of idle connections
+	DB.SetConnMaxLifetime(300) // Maximum lifetime (seconds) of each connection to avoid random timeouts
 
 	if err = DB.Ping(); err != nil {
 		log.Fatalf("Database unreachable: %v", err.Error())

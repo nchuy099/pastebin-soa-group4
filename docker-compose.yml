@@ -45,8 +45,6 @@ services:
     volumes:
       - ./pastebin_db.sql:/docker-entrypoint-initdb.d/pastebin_db.sql
       - mysql_data:/var/lib/mysql
-    command:
-      - --max_connections=12000
     healthcheck:
       test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-ppassword" ]
       interval: 5s
@@ -89,7 +87,7 @@ services:
       - DB_PASSWORD=password
       - DB_NAME=pastebin
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
-      - NUM_WORKERS=1 # 5 goroutines per container
+      - NUM_WORKERS=5 # 5 goroutines per container
       - BATCH_SIZE=1000 # Process 1000 pastes per batch
       - BATCH_TIMEOUT_SECS=5 # Flush batch after 3 seconds if not full
     depends_on:
@@ -149,7 +147,9 @@ services:
       - DB_PASSWORD=password
       - DB_NAME=pastebin
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
-      - NUM_WORKERS=1 # 8 goroutines per container
+      - NUM_WORKERS=5 # 8 goroutines per container
+      - BATCH_SIZE=500 # Process 500 paste views per batch
+      - BATCH_TIMEOUT_SECS=3 # Flush batch after 3 seconds if not full
     depends_on:
       mysql:
         condition: service_healthy
@@ -229,13 +229,12 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./nginx/conf.d:/etc/nginx/conf.d
-      - ./react-ui/build:/usr/share/nginx/html  # Mount the built React files
+      - ./react-ui/build:/usr/share/nginx/html # Mount the built React files
     depends_on:
       - create-paste-service
       - get-paste-service
       - get-stats-service
     restart: unless-stopped
-
 
   # Locust for load testing
   locust:

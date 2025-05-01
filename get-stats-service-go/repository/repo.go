@@ -246,3 +246,19 @@ func GetStatsForLastMonth(pasteID string, currentTime time.Time) (*model.Stats, 
 		TotalViews: totalViews,
 	}, nil
 }
+
+func GetTotalPasteViewsFromCreation(pasteID string) (int64, error) {
+	query := `
+		SELECT COUNT(*) AS total_views
+		FROM paste_views
+		WHERE paste_id = ?;	
+	`
+
+	var totalViews int64
+	err := db.DB.QueryRow(query, pasteID).Scan(&totalViews)
+	if err != nil {
+		return 0, err
+	}
+
+	return totalViews, nil
+}
