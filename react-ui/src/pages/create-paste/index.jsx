@@ -1,17 +1,17 @@
-// react-ui/src/pages/CreatePaste/index.jsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Form, Button, Alert, Row, Col } from 'react-bootstrap';
+import TwoColumnLayout from '../../components/TwoColumnLayout';
 
-export default function CreatePaste() {
+export default function CreatePaste({ setHeaderTitle }) {
     const navigate = useNavigate();
 
-    const [content, setContent]       = useState('');
-    const [title, setTitle]           = useState('');
-    const [language, setLanguage]     = useState('text');
-    const [expiresIn, setExpiresIn]   = useState('60');
+    const [content, setContent] = useState('');
+    const [title, setTitle] = useState('');
+    const [language, setLanguage] = useState('text');
+    const [expiresIn, setExpiresIn] = useState('60');
     const [visibility, setVisibility] = useState('PUBLIC');
-    // const [pasteLink, setPasteLink]   = useState('');
-    const [error, setError]           = useState('');
+    const [error, setError] = useState('');
 
     const languageOptions = [
         { label: 'Text', value: 'text' },
@@ -44,9 +44,12 @@ export default function CreatePaste() {
         { label: '1 Week', value: '604800' },
     ];
 
+    useEffect(() => {
+        setHeaderTitle('Create Paste');
+    }, [setHeaderTitle]);
+
     const handleSubmit = async () => {
         setError('');
-        // setPasteLink('');
 
         const payload = {
             content,
@@ -78,98 +81,89 @@ export default function CreatePaste() {
     };
 
     return (
-        <div className="container-md my-5">
-            <div className="card shadow">
-                <div className="card-body p-4">
-                    <h1 className="card-title text-center mb-4">Create a New Paste</h1>
-
-                    <div className="row g-4">
-                        {/* Title */}
-                        <div className="col-12">
-                            <label className="form-label">Title</label>
-                            <input
-                                type="text"
-                                className="form-control"
-                                placeholder="Untitled"
-                                value={title}
-                                onChange={e => setTitle(e.target.value)}
-                            />
-                        </div>
-
-                        {/* Language, Visibility, Expiry */}
-                        <div className="col-md-4">
-                            <label className="form-label">Language</label>
-                            <select
-                                className="form-select"
-                                value={language}
-                                onChange={e => setLanguage(e.target.value)}
-                            >
-                                {languageOptions.map(opt => (
-                                    <option key={opt.value} value={opt.value}>
-                                        {opt.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="col-md-4">
-                            <label className="form-label">Visibility</label>
-                            <select
-                                className="form-select"
-                                value={visibility}
-                                onChange={e => setVisibility(e.target.value)}
-                            >
-                                <option value="PUBLIC">Public</option>
-                                <option value="UNLISTED">Unlisted</option>
-                            </select>
-                        </div>
-
-                        <div className="col-md-4">
-                            <label className="form-label">Expires In</label>
-                            <select
-                                className="form-select"
-                                value={expiresIn}
-                                onChange={e => setExpiresIn(e.target.value)}
-                            >
-                                {expiryOptions.map(opt => (
-                                    <option key={opt.value} value={opt.value}>
-                                        {opt.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        {/* Content */}
-                        <div className="col-12">
-                            <label className="form-label">Content</label>
-                            <textarea
-                                className="form-control font-monospace"
-                                value={content}
-                                onChange={e => setContent(e.target.value)}
-                                placeholder="Type or paste your content here..."
-                                rows="8"
-                            />
-                        </div>
-
-                        {/* Error Message */}
-                        {error && (
-                            <div className="col-12">
-                                <div className="alert alert-danger">{error}</div>
-                            </div>
-                        )}
-
-                        {/* Submit Button */}
-                        <div className="col-12">
-                            <button
-                                onClick={handleSubmit}
-                                className="btn btn-primary w-100 py-2"
-                            >
-                                Create Paste
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <TwoColumnLayout>
+            <Form>
+                <Row>
+                    <Form.Group as={Col} xs={12} className="mb-3">
+                        <Form.Label>Title</Form.Label>
+                        <Form.Control
+                            type="text"
+                            placeholder="Untitled"
+                            value={title}
+                            onChange={e => setTitle(e.target.value)}
+                        />
+                    </Form.Group>
+                </Row>
+                <Row className="mb-3">
+                    <Form.Group as={Col} md={4}>
+                        <Form.Label>Language</Form.Label>
+                        <Form.Select
+                            value={language}
+                            onChange={e => setLanguage(e.target.value)}
+                        >
+                            {languageOptions.map(opt => (
+                                <option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                </option>
+                            ))}
+                        </Form.Select>
+                    </Form.Group>
+                    <Form.Group as={Col} md={4}>
+                        <Form.Label>Visibility</Form.Label>
+                        <Form.Select
+                            value={visibility}
+                            onChange={e => setVisibility(e.target.value)}
+                        >
+                            <option value="PUBLIC">Public</option>
+                            <option value="UNLISTED">Unlisted</option>
+                        </Form.Select>
+                    </Form.Group>
+                    <Form.Group as={Col} md={4}>
+                        <Form.Label>Expires In</Form.Label>
+                        <Form.Select
+                            value={expiresIn}
+                            onChange={e => setExpiresIn(e.target.value)}
+                        >
+                            {expiryOptions.map(opt => (
+                                <option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                </option>
+                            ))}
+                        </Form.Select>
+                    </Form.Group>
+                </Row>
+                <Row>
+                    <Form.Group as={Col} xs={12} className="mb-3">
+                        <Form.Label>Content</Form.Label>
+                        <Form.Control
+                            as="textarea"
+                            rows={10}
+                            className="font-monospace"
+                            placeholder="Type or paste your content here..."
+                            value={content}
+                            onChange={e => setContent(e.target.value)}
+                        />
+                    </Form.Group>
+                </Row>
+                {error && (
+                    <Row>
+                        <Col xs={12} className="mb-3">
+                            <Alert variant="danger">{error}</Alert>
+                        </Col>
+                    </Row>
+                )}
+                <Row>
+                    <Col xs={12}>
+                        <Button
+                            variant="primary"
+                            onClick={handleSubmit}
+                            className="w-100 py-2"
+                        >
+                            Create Paste
+                        </Button>
+                    </Col>
+                </Row>
+            </Form>
+        </TwoColumnLayout>
     );
 }
