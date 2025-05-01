@@ -14,19 +14,18 @@ func GetStatsForLast10Minutes(pasteID string, currentTime time.Time) (*model.Sta
 	// Chuyển đổi thời gian hiện tại sang GMT+7
 	currentTime = currentTime.In(gmt7)
 
-	// Làm tròn xuống phút gần nhất
-	endTime := currentTime.Truncate(time.Minute)
+	// Không làm tròn endTime để bao gồm phút hiện tại
+	endTime := currentTime
 	startTime := endTime.Add(-10 * time.Minute)
 
 	query := `
 		SELECT 
-			DATE_FORMAT(CONVERT_TZ(viewed_at, '+00:00', '+07:00'), '%Y-%m-%d %H:%i') AS time_key,
-			DATE_FORMAT(CONVERT_TZ(viewed_at, '+00:00', '+07:00'), '%H:%i') AS time_label,
+			DATE_FORMAT(CONVERT_TZ(viewed_at, '+00:00', '+07:00'), '%Y-%m-%d %H:%i') AS time_label,
 			COUNT(*) AS views
 		FROM paste_views
 		WHERE paste_id = ? AND viewed_at >= ? AND viewed_at < ?
-		GROUP BY time_key, time_label
-		ORDER BY time_key ASC
+		GROUP BY time_label
+		ORDER BY time_label ASC
 	`
 
 	rows, err := db.DB.Query(query, pasteID, startTime.UTC(), endTime.UTC())
@@ -41,25 +40,26 @@ func GetStatsForLast10Minutes(pasteID string, currentTime time.Time) (*model.Sta
 
 	var totalViews int64
 	for rows.Next() {
-		var timeKey, label string
+		var timeLabel string
 		var views int64
-		if err := rows.Scan(&timeKey, &label, &views); err != nil {
+		if err := rows.Scan(&timeLabel, &views); err != nil {
 			log.Printf("Error scanning row: %v", err)
 			return nil, err
 		}
-		viewMap[label] = views
+		viewMap[timeLabel] = views // Sử dụng timeLabel làm khóa
 		totalViews += views
 	}
 
-	// Tạo danh sách đầy đủ cho 10 phút
+	// Tạo danh sách đầy đủ cho 10 phút, bắt đầu từ phút hiện tại
 	var timeViews []model.TimeView
 	for i := 9; i >= 0; i-- {
-		t := endTime.Add(-time.Duration(i) * time.Minute)
-		label := t.Format("15:04")
-		views := viewMap[label]
+		t := endTime.Add(-time.Duration(i) * time.Minute).Truncate(time.Minute)
+		timeKey := t.Format("2006-01-02 15:04") // Định dạng khớp với time_label
+		label := t.Format("15:04")              // Định dạng hiển thị, ví dụ: "19:24"
+		views := viewMap[timeKey]               // Lấy số lượt xem từ viewMap, mặc định 0 nếu không có
 		timeViews = append(timeViews, model.TimeView{
 			Time:  label,
-			Views: int64(views),
+			Views: views,
 		})
 	}
 
@@ -74,18 +74,19 @@ func GetStatsForLastDay(pasteID string, currentTime time.Time) (*model.Stats, er
 	// Chuyển đổi thời gian hiện tại sang GMT+7
 	currentTime = currentTime.In(gmt7)
 
-	endTime := currentTime.Truncate(time.Hour)
+	// Thay vì làm tròn xuống giờ, lấy chính xác thời điểm hiện tại
+	endTime := currentTime
 	startTime := endTime.Add(-24 * time.Hour)
 
 	query := `
-		SELECT 
-			DATE_FORMAT(CONVERT_TZ(viewed_at, '+00:00', '+07:00'), '%Y-%m-%d %H:00') AS time_label,
-			COUNT(*) AS views
-		FROM paste_views
-		WHERE paste_id = ? AND viewed_at >= ? AND viewed_at < ?
-		GROUP BY time_label
-		ORDER BY time_label ASC
-	`
+        SELECT 
+            DATE_FORMAT(CONVERT_TZ(viewed_at, '+00:00', '+07:00'), '%Y-%m-%d %H:00') AS time_label,
+            COUNT(*) AS views
+        FROM paste_views
+        WHERE paste_id = ? AND viewed_at >= ? AND viewed_at < ?
+        GROUP BY time_label
+        ORDER BY time_label ASC
+    `
 
 	rows, err := db.DB.Query(query, pasteID, startTime.UTC(), endTime.UTC())
 	if err != nil {
@@ -109,12 +110,20 @@ func GetStatsForLastDay(pasteID string, currentTime time.Time) (*model.Stats, er
 		totalViews += views
 	}
 
-	// Tạo danh sách đầy đủ cho 24 giờ
+	// Tạo danh sách đầy đủ cho 24 giờ, bao gồm cả giờ hiện tại
 	var timeViews []model.TimeView
-	for i := 23; i >= 0; i-- {
-		t := endTime.Add(-time.Duration(i) * time.Hour)
-		label := t.Format("15:04")
-		hourKey := t.Format("2006-01-02 15:00")
+
+	// Bắt đầu từ giờ hiện tại, lùi lại 24 giờ
+	for i := 0; i < 24; i++ {
+		hourOffset := (23 - i)
+		t := currentTime.Add(-time.Duration(hourOffset) * time.Hour)
+
+		// Lấy giờ làm tròn
+		roundedHour := t.Truncate(time.Hour)
+
+		label := roundedHour.Format("15:04")
+		hourKey := roundedHour.Format("2006-01-02 15") + ":00"
+
 		views := viewMap[hourKey]
 		timeViews = append(timeViews, model.TimeView{
 			Time:  label,
@@ -133,7 +142,8 @@ func GetStatsForLastWeek(pasteID string, currentTime time.Time) (*model.Stats, e
 	// Chuyển đổi thời gian hiện tại sang GMT+7
 	currentTime = currentTime.In(gmt7)
 
-	endTime := currentTime.Truncate(24 * time.Hour)
+	// Không làm tròn endTime để bao gồm ngày hiện tại
+	endTime := currentTime
 	startTime := endTime.AddDate(0, 0, -7)
 
 	query := `
@@ -158,22 +168,22 @@ func GetStatsForLastWeek(pasteID string, currentTime time.Time) (*model.Stats, e
 
 	var totalViews int64
 	for rows.Next() {
-		var label string
+		var timeLabel string
 		var views int64
-		if err := rows.Scan(&label, &views); err != nil {
+		if err := rows.Scan(&timeLabel, &views); err != nil {
 			log.Printf("Error scanning row: %v", err)
 			return nil, err
 		}
-		viewMap[label] = views
+		viewMap[timeLabel] = views
 		totalViews += views
 	}
 
-	// Tạo danh sách đầy đủ cho 7 ngày
+	// Tạo danh sách đầy đủ cho 7 ngày, bao gồm ngày hiện tại
 	var timeViews []model.TimeView
 	for i := 6; i >= 0; i-- {
-		t := endTime.AddDate(0, 0, -i)
-		label := t.Format("01/02")
-		dayKey := t.Format("2006-01-02")
+		t := endTime.AddDate(0, 0, -i).Truncate(24 * time.Hour)
+		dayKey := t.Format("2006-01-02") // Định dạng khớp với time_label
+		label := t.Format("01/02")       // Định dạng hiển thị, ví dụ: "05/01"
 		views := viewMap[dayKey]
 		timeViews = append(timeViews, model.TimeView{
 			Time:  label,
@@ -192,7 +202,8 @@ func GetStatsForLastMonth(pasteID string, currentTime time.Time) (*model.Stats, 
 	// Chuyển đổi thời gian hiện tại sang GMT+7
 	currentTime = currentTime.In(gmt7)
 
-	endTime := currentTime.Truncate(24 * time.Hour)
+	// Không làm tròn endTime để bao gồm ngày hiện tại
+	endTime := currentTime
 	startTime := endTime.AddDate(0, 0, -30)
 
 	query := `
@@ -217,22 +228,22 @@ func GetStatsForLastMonth(pasteID string, currentTime time.Time) (*model.Stats, 
 
 	var totalViews int64
 	for rows.Next() {
-		var label string
+		var timeLabel string
 		var views int64
-		if err := rows.Scan(&label, &views); err != nil {
+		if err := rows.Scan(&timeLabel, &views); err != nil {
 			log.Printf("Error scanning row: %v", err)
 			return nil, err
 		}
-		viewMap[label] = views
+		viewMap[timeLabel] = views
 		totalViews += views
 	}
 
-	// Tạo danh sách đầy đủ cho 30 ngày
+	// Tạo danh sách đầy đủ cho 30 ngày, bao gồm ngày hiện tại
 	var timeViews []model.TimeView
 	for i := 29; i >= 0; i-- {
-		t := endTime.AddDate(0, 0, -i)
-		label := t.Format("01/02") // Hiển thị theo định dạng MM/DD
-		dayKey := t.Format("2006-01-02")
+		t := endTime.AddDate(0, 0, -i).Truncate(24 * time.Hour)
+		dayKey := t.Format("2006-01-02") // Định dạng khớp với time_label
+		label := t.Format("01/02")       // Định dạng hiển thị, ví dụ: "05/01"
 		views := viewMap[dayKey]
 		timeViews = append(timeViews, model.TimeView{
 			Time:  label,
