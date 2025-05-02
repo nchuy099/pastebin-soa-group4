@@ -12,14 +12,16 @@ export default function PasteStats({ setHeaderTitle }) {
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [mode, setMode] = useState('last-10-minutes');
+    const [mode, setMode] = useState('last-7-days');
 
     // Fetch stats based on mode
     useEffect(() => {
         console.log(`Fetching stats for paste ${id}, mode: ${mode}`);
         setHeaderTitle?.('Paste Statistics');
         setLoading(true);
-        fetch(`/stats/api/paste/${id}/stats?mode=${mode}`)
+        fetch(
+            `/stats/api/paste/${id}/stats?mode=${mode}`
+        )
             .then(res => {
                 console.log('Response status:', res.status, 'URL:', `/stats/api/paste/${id}/stats?mode=${mode}`);
                 if (!res.ok) {
