@@ -22,6 +22,7 @@ services:
 
   # RabbitMQ for message queue
   rabbitmq:
+    container_name: rabbitmq
     image: rabbitmq:3-management
     ports:
       - "5672:5672" # AMQP protocol port
@@ -103,6 +104,7 @@ services:
     restart: unless-stopped
 
   get-paste-service-vm1:
+    container_name: get-paste-vm1
     build:
       context: ./get-paste-service-go
       dockerfile: Dockerfile
@@ -132,6 +134,7 @@ services:
 
   # Nginx reverse proxy
   nginx:
+    container_name: nginx
     image: nginx:latest
     ports:
       - "80:80"

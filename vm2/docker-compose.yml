@@ -32,6 +32,7 @@ services:
 
   # Create Worker Service - Independent service that handles database insertion
   create-paste-worker:
+    container_name: create-worker
     build:
       context: ./create-paste-worker-go
       dockerfile: Dockerfile
@@ -62,6 +63,7 @@ services:
 
       # Get Paste Service - VM2
   get-paste-service-vm2:
+    container_name: get-paste-vm2
     build:
       context: ./get-paste-service-go
       dockerfile: Dockerfile
@@ -84,6 +86,7 @@ services:
 
   # Get Paste Worker - VM2
   get-paste-worker-vm2:
+    container_name: view-worker-vm2
     build:
       context: ./get-paste-worker-go
       dockerfile: Dockerfile
@@ -101,6 +104,7 @@ services:
     restart: unless-stopped
 
   get-public-service:
+    container_name: get-public
     build:
       context: ./get-public-service-go
       dockerfile: Dockerfile

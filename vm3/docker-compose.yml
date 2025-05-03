@@ -29,6 +29,7 @@ services:
 
   # Get Paste Service - VM3
   get-paste-service-vm3:
+    container_name: get-paste-vm3
     build:
       context: ./get-paste-service-go
       dockerfile: Dockerfile
@@ -51,6 +52,7 @@ services:
 
   # Get Paste Worker - VM3
   get-paste-worker-vm3:
+    container_name: get-paste-vm3
     build:
       context: ./get-paste-worker-go
       dockerfile: Dockerfile
@@ -69,6 +71,7 @@ services:
 
   # Get Stats Service
   get-stats-service:
+    container_name: get-stats
     build:
       context: ./get-stats-service-go
       dockerfile: Dockerfile
@@ -89,6 +92,7 @@ services:
 
   # Cleanup Expired Service
   cleanup-expired-service:
+    container_name: cleanup
     build:
       context: ./cleanup-expired-service-go
       dockerfile: Dockerfile
