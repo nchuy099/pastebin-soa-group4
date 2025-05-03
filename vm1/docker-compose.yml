@@ -1,0 +1,146 @@
+services:
+  ######################
+  # Infrastructure Services
+  ######################
+
+  # Redis for caching
+  redis:
+    container_name: redis
+    image: redis:7.0-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --save 60 1 --loglevel warning
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # RabbitMQ for message queue
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672" # AMQP protocol port
+      - "15672:15672" # Management UI port
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    healthcheck:
+      test: [ "CMD", "rabbitmqctl", "status" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # MySQL Database
+  mysql-replica1:
+    container_name: mysql-replica1
+    image: mysql:8.0
+    ports:
+      - "3308:3306"
+    command: --server-id=1 --relay-log=relay-log --read-only=1
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: pastebin
+    volumes:
+      - ./pastebin_db.sql:/docker-entrypoint-initdb.d/pastebin_db.sql
+      - mysql_data_replica1:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-ppassword" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  proxysql:
+    image: proxysql/proxysql:latest
+    container_name: proxysql
+    ports:
+      - "6032:6032"
+      - "6033:6033"
+    volumes:
+      - ./init-proxysql.sql:/etc/proxysql/init-proxysql.sql
+    command: [ "/bin/bash", "-c", "proxysql -f --initial & sleep 10 && mysql -h 127.0.0.1 -P 6032 -u admin -padmin < /etc/proxysql/init-proxysql.sql && tail -f /dev/null" ]
+    depends_on:
+      mysql-replica1:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "admin", "-padmin" ]
+      interval: 30s
+      retries: 3
+      start_period: 10s
+      timeout: 5s
+
+  ######################
+  # Application Services
+  ######################
+
+  # Create Paste Service API - Only handles API requests, caches in Redis, and queues to RabbitMQ
+  create-paste-service:
+    container_name: create-paste
+    build:
+      context: ./create-paste-service-go
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      - PORT=8081
+      - REDIS_HOST=redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - REDIS_CACHE_PASTE_TTL_SECONDS=180
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  get-paste-service-vm1:
+    build:
+      context: ./get-paste-service-go
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8082"
+    environment:
+      - PORT=8082
+      - DB_HOST=proxysql
+      - DB_PORT=6033
+      - DB_USER=proxysql_user
+      - DB_PASSWORD=proxysql_password
+      - DB_NAME=pastebin
+      - REDIS_HOST=redis:6379
+      - REDIS_PASSWORD=
+      - REDIS_CACHE_PASTE_TTL_SECONDS=180
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - SERVICE_NAME=get-paste-service-vm1
+    depends_on:
+      proxysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./react-ui/build:/usr/share/nginx/html # Mount the built React files
+    depends_on:
+      - create-paste-service
+      - get-paste-service-vm1
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  mysql_data_replica1:
+
+

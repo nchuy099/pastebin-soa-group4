@@ -1,0 +1,119 @@
+services:
+  ######################
+  # Infrastructure Services
+  ######################
+
+  # MySQL Database
+  mysql-primary:
+    container_name: mysql-primary
+    image: mysql:8.0
+    ports:
+      - "3307:3306"
+    command: --server-id=2 --log-bin=mysql-bin --binlog-do-db=pastebin
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: pastebin
+    volumes:
+      - ./pastebin_db.sql:/docker-entrypoint-initdb.d/pastebin_db.sql
+      - mysql_data_primary:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-ppassword" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  ######################
+  # Application Services
+  ######################
+
+  # Create Paste Service API - Only handles API requests, caches in Redis, and queues to RabbitMQ
+
+  # Create Worker Service - Independent service that handles database insertion
+  create-paste-worker:
+    build:
+      context: ./create-paste-worker-go
+      dockerfile: Dockerfile
+    environment:
+      - DB_HOST=proxysql
+      - DB_PORT=6033
+      - DB_USER=proxysql_user
+      - DB_PASSWORD=proxysql_password
+      - DB_NAME=pastebin
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - NUM_WORKERS=5 # 5 goroutines per container
+      - BATCH_SIZE=1000 # Process 1000 pastes per batch
+      - BATCH_TIMEOUT_SECS=5 # Flush batch after 3 seconds if not full
+
+    restart: unless-stopped
+    deploy:
+      mode: replicated
+      replicas: 1 # 3 containers, each with 5 goroutines = 15 workers total
+      # resources:
+      #   limits:
+      #     cpus: '0.30'
+      #     memory: 256M
+      #   reservations:
+      #     cpus: '0.10'
+      #     memory: 128M
+
+      # Get Paste Service
+      # Get Paste Service - VM1
+
+      # Get Paste Service - VM2
+  get-paste-service-vm2:
+    build:
+      context: ./get-paste-service-go
+      dockerfile: Dockerfile
+    ports:
+      - "8085:8082"
+    environment:
+      - PORT=8082
+      - DB_HOST=proxysql
+      - DB_PORT=6033
+      - DB_USER=proxysql_user
+      - DB_PASSWORD=proxysql_password
+      - DB_NAME=pastebin
+      - REDIS_HOST=redis:6379
+      - REDIS_PASSWORD=
+      - REDIS_CACHE_PASTE_TTL_SECONDS=180
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - SERVICE_NAME=get-paste-service-vm2
+    restart: unless-stopped
+
+  # Get Paste Worker - VM2
+  get-paste-worker-vm2:
+    build:
+      context: ./get-paste-worker-go
+      dockerfile: Dockerfile
+    environment:
+      - DB_HOST=proxysql
+      - DB_PORT=6033
+      - DB_USER=proxysql_user
+      - DB_PASSWORD=proxysql_password
+      - DB_NAME=pastebin
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - NUM_WORKERS=5 # 5 goroutines per container
+      - BATCH_SIZE=500 # Process 500 paste views per batch
+      - BATCH_TIMEOUT_SECS=3 # Flush batch after 3 seconds if not full
+      - SERVICE_NAME=get-paste-worker-vm2
+    restart: unless-stopped
+
+  get-public-service:
+    build:
+      context: ./get-public-service-go
+      dockerfile: Dockerfile
+    ports:
+      - "8079:8079"
+    environment:
+      - DB_HOST=proxysql
+      - DB_PORT=6033
+      - DB_USER=proxysql_user
+      - DB_PASSWORD=proxysql_password
+      - DB_NAME=pastebin
+      - PORT=8079
+
+volumes:
+  mysql_data_primary:
+
+
