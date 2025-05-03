@@ -21,7 +21,9 @@ CREATE TABLE paste (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   expires_at TIMESTAMP DEFAULT NULL,
   visibility ENUM('PUBLIC','UNLISTED') DEFAULT 'PUBLIC',
-  PRIMARY KEY (id)
+  PRIMARY KEY (id),
+  INDEX idx_expires_at ON paste (expires_at),
+  INDEX idx_expires_at_id ON paste (expires_at, id)
 );
 
 -- ========================================
@@ -32,8 +34,7 @@ CREATE TABLE paste_views (
   paste_id VARCHAR(10) NOT NULL,
   viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
-  INDEX idx_viewed_at_paste_id (viewed_at, paste_id),
-  FOREIGN KEY (paste_id) REFERENCES paste(id) ON DELETE CASCADE
+  INDEX idx_viewed_at_paste_id (viewed_at, paste_id)
 );
 
 -- ========================================
