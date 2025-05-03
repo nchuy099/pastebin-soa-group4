@@ -73,6 +73,7 @@ services:
       retries: 3
       start_period: 10s
       timeout: 5s
+    network_mode: host
 
   ######################
   # Application Services
