@@ -93,8 +93,8 @@ services:
       - "8081:8081"
     environment:
       - PORT=8081
-      - REDIS_HOST=redis:6379
-      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - REDIS_HOST=127.0.0.1:6379
+      - RABBITMQ_URL=amqp://guest:guest@127.0.0.1:5672/
       - REDIS_CACHE_PASTE_TTL_SECONDS=180
     depends_on:
       redis:
@@ -102,6 +102,7 @@ services:
       rabbitmq:
         condition: service_healthy
     restart: unless-stopped
+    network_mode: host
 
   get-paste-service-vm1:
     container_name: get-paste-vm1
@@ -112,7 +113,7 @@ services:
       - "8082:8082"
     environment:
       - PORT=8082
-      - DB_HOST=proxysql
+      - DB_HOST=127.0.0.1
       - DB_PORT=6033
       - DB_USER=proxysql_user
       - DB_PASSWORD=proxysql_password
@@ -120,7 +121,7 @@ services:
       - REDIS_HOST=redis:6379
       - REDIS_PASSWORD=
       - REDIS_CACHE_PASTE_TTL_SECONDS=180
-      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - RABBITMQ_URL=amqp://guest:guest@127.0.0.1:5672/
       - SERVICE_NAME=get-paste-service-vm1
     depends_on:
       proxysql:
