@@ -52,7 +52,7 @@ services:
 
   # Get Paste Worker - VM3
   get-paste-worker-vm3:
-    container_name: get-paste-vm3
+    container_name: view-worker-vm3
     build:
       context: ./get-paste-worker-go
       dockerfile: Dockerfile
