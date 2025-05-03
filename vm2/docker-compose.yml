@@ -35,12 +35,12 @@ services:
       context: ./create-paste-worker-go
       dockerfile: Dockerfile
     environment:
-      - DB_HOST=proxysql
+      - DB_HOST=10.148.0.2
       - DB_PORT=6033
       - DB_USER=proxysql_user
       - DB_PASSWORD=proxysql_password
       - DB_NAME=pastebin
-      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - RABBITMQ_URL=amqp://guest:guest@10.148.0.2:5672/
       - NUM_WORKERS=5 # 5 goroutines per container
       - BATCH_SIZE=1000 # Process 1000 pastes per batch
       - BATCH_TIMEOUT_SECS=5 # Flush batch after 3 seconds if not full
@@ -69,15 +69,15 @@ services:
       - "8085:8082"
     environment:
       - PORT=8082
-      - DB_HOST=proxysql
+      - DB_HOST=10.148.0.2
       - DB_PORT=6033
       - DB_USER=proxysql_user
       - DB_PASSWORD=proxysql_password
       - DB_NAME=pastebin
-      - REDIS_HOST=redis:6379
+      - REDIS_HOST=10.148.0.2:6379
       - REDIS_PASSWORD=
       - REDIS_CACHE_PASTE_TTL_SECONDS=180
-      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - RABBITMQ_URL=amqp://guest:guest@10.148.0.2:5672/
       - SERVICE_NAME=get-paste-service-vm2
     restart: unless-stopped
 
@@ -87,12 +87,12 @@ services:
       context: ./get-paste-worker-go
       dockerfile: Dockerfile
     environment:
-      - DB_HOST=proxysql
+      - DB_HOST=10.148.0.2
       - DB_PORT=6033
       - DB_USER=proxysql_user
       - DB_PASSWORD=proxysql_password
       - DB_NAME=pastebin
-      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - RABBITMQ_URL=amqp://guest:guest@10.148.0.2:5672/
       - NUM_WORKERS=5 # 5 goroutines per container
       - BATCH_SIZE=500 # Process 500 paste views per batch
       - BATCH_TIMEOUT_SECS=3 # Flush batch after 3 seconds if not full
@@ -106,7 +106,7 @@ services:
     ports:
       - "8079:8079"
     environment:
-      - DB_HOST=proxysql
+      - DB_HOST=10.148.0.2
       - DB_PORT=6033
       - DB_USER=proxysql_user
       - DB_PASSWORD=proxysql_password

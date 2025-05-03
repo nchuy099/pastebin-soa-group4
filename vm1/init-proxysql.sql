@@ -19,9 +19,9 @@ VALUES ('proxysql_user', 'proxysql_password', 1, 1);
 INSERT INTO mysql_servers (hostgroup_id, hostname, port, max_connections) 
 VALUES (0, 'mysql-replica1', 3306, 100);
 INSERT INTO mysql_servers (hostgroup_id, hostname, port, max_connections) 
-VALUES (1, 'mysql-primary', 3306, 100);
+VALUES (1, '10.148.0.3', 3306, 100);
 INSERT INTO mysql_servers (hostgroup_id, hostname, port, max_connections) 
-VALUES (0, 'mysql-replica2', 3306, 100);
+VALUES (0, '10.148.0.4', 3306, 100);
 
 -- 6. Add query rules
 -- Rule 1: All SELECT queries go to replica (hostgroup 0)
