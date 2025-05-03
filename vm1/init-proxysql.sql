@@ -17,7 +17,7 @@ VALUES ('proxysql_user', 'proxysql_password', 1, 1);
 
 -- 5. Add backend MySQL servers (Primary and Replicas)
 INSERT INTO mysql_servers (hostgroup_id, hostname, port, max_connections) 
-VALUES (0, 'mysql-replica1', 3306, 100);
+VALUES (0, '10.148.0.2', 3306, 100);
 INSERT INTO mysql_servers (hostgroup_id, hostname, port, max_connections) 
 VALUES (1, '10.148.0.3', 3306, 100);
 INSERT INTO mysql_servers (hostgroup_id, hostname, port, max_connections) 
