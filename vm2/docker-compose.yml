@@ -22,6 +22,7 @@ services:
       timeout: 3s
       retries: 5
     restart: unless-stopped
+    network_mode: host
 
   ######################
   # Application Services
@@ -58,7 +59,6 @@ services:
       #     memory: 128M
 
       # Get Paste Service
-      # Get Paste Service - VM1
 
       # Get Paste Service - VM2
   get-paste-service-vm2:
@@ -80,6 +80,7 @@ services:
       - RABBITMQ_URL=amqp://guest:guest@10.148.0.2:5672/
       - SERVICE_NAME=get-paste-service-vm2
     restart: unless-stopped
+    network_mode: host
 
   # Get Paste Worker - VM2
   get-paste-worker-vm2:
@@ -112,6 +113,7 @@ services:
       - DB_PASSWORD=proxysql_password
       - DB_NAME=pastebin
       - PORT=8079
+    network_mode: host
 
 volumes:
   mysql_data_primary:

@@ -18,6 +18,7 @@ services:
       timeout: 3s
       retries: 5
     restart: unless-stopped
+    network_mode: host
 
   # RabbitMQ for message queue
   rabbitmq:
@@ -34,6 +35,7 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    network_mode: host
 
   # MySQL Database
   mysql-replica1:
@@ -54,6 +56,7 @@ services:
       timeout: 3s
       retries: 5
     restart: unless-stopped
+    network_mode: host
 
   proxysql:
     image: proxysql/proxysql:latest
@@ -139,6 +142,7 @@ services:
       - create-paste-service
       - get-paste-service-vm1
     restart: unless-stopped
+    network_mode: host
 
 volumes:
   redis_data:
