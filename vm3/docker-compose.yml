@@ -1,0 +1,107 @@
+services:
+  ######################
+  # Infrastructure Services
+  ######################
+  # MySQL Database
+  mysql-replica2:
+    container_name: mysql-replica2
+    image: mysql:8.0
+    ports:
+      - "3309:3306"
+    command: --server-id=3 --relay-log=relay-log --read-only=1
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: pastebin
+    volumes:
+      - ./pastebin_db.sql:/docker-entrypoint-initdb.d/pastebin_db.sql
+      - mysql_data_replica2:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-ppassword" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  ######################
+  # Application Services
+  ######################
+
+  # Get Paste Service - VM3
+  get-paste-service-vm3:
+    build:
+      context: ./get-paste-service-go
+      dockerfile: Dockerfile
+    ports:
+      - "8086:8082"
+    environment:
+      - PORT=8082
+      - DB_HOST=proxysql
+      - DB_PORT=6033
+      - DB_USER=proxysql_user
+      - DB_PASSWORD=proxysql_password
+      - DB_NAME=pastebin
+      - REDIS_HOST=redis:6379
+      - REDIS_PASSWORD=
+      - REDIS_CACHE_PASTE_TTL_SECONDS=180
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - SERVICE_NAME=get-paste-service-vm3
+    restart: unless-stopped
+
+  # Get Paste Worker - VM3
+  get-paste-worker-vm3:
+    build:
+      context: ./get-paste-worker-go
+      dockerfile: Dockerfile
+    environment:
+      - DB_HOST=proxysql
+      - DB_PORT=6033
+      - DB_USER=proxysql_user
+      - DB_PASSWORD=proxysql_password
+      - DB_NAME=pastebin
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - NUM_WORKERS=5 # 5 goroutines per container
+      - BATCH_SIZE=500 # Process 500 paste views per batch
+      - BATCH_TIMEOUT_SECS=3 # Flush batch after 3 seconds if not full
+      - SERVICE_NAME=get-paste-worker-vm3
+    restart: unless-stopped
+
+  # Get Stats Service
+  get-stats-service:
+    build:
+      context: ./get-stats-service-go
+      dockerfile: Dockerfile
+    ports:
+      - "8083:8083"
+    environment:
+      - PORT=8083
+      - DB_HOST=proxysql
+      - DB_PORT=6033
+      - DB_USER=proxysql_user
+      - DB_PASSWORD=proxysql_password
+      - DB_NAME=pastebin
+      - REDIS_HOST=redis:6379
+      - REDIS_PASSWORD=
+      - REDIS_CACHE_STATS_TTL_OTHER_MONTH_SECONDS=60
+    restart: unless-stopped
+
+  # Cleanup Expired Service
+  cleanup-expired-service:
+    build:
+      context: ./cleanup-expired-service-go
+      dockerfile: Dockerfile
+    ports:
+      - "8084:8084"
+    environment:
+      - DB_HOST=proxysql
+      - DB_PORT=6033
+      - DB_USER=proxysql_user
+      - DB_PASSWORD=proxysql_password
+      - DB_NAME=pastebin
+      - CLEANUP_INTERVAL_MINS=0.25
+      - PORT=8084
+    restart: unless-stopped
+
+volumes:
+  mysql_data_replica2:
+
+
