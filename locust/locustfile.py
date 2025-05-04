@@ -35,8 +35,8 @@ class PastebinUser(HttpUser):
         # Tạo phân phối xác suất giảm dần cho thời gian hết hạn
         # Các giá trị: "" (không hết hạn), "1" (1 phút), "60" (1 giờ), "1440" (1 ngày), "10080" (1 tuần), "43200" (1 tháng)
         # Xác suất giảm dần: không hết hạn (5%), 1 phút (40%), 1 giờ (25%), 1 ngày (15%), 1 tuần (10%), 1 tháng (5%)
-        expires_options = ["", "1", "60", "1440", "10080", "43200"]
-        expires_weights = [5, 40, 25, 15, 10, 5]  # Tổng = 100%
+        expires_options = ["", "1", "5", "10", "1440", "10080", "43200"]
+        expires_weights = [5, 40, 25, 20, 5, 3, 2]  # Tổng = 100%
         expires_in = random.choices(expires_options, weights=expires_weights, k=1)[0]
         
         visibility = random.choice(["PUBLIC", "UNLISTED"]) if random.random() > 0.5 else "PUBLIC"

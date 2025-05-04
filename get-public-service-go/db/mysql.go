@@ -5,29 +5,48 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
+// DB is the global database connection
 var DB *sql.DB
 
+// InitDB initializes the database connection with ProxySQL configuration
 func InitDB() {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?parseTime=true",
-		os.Getenv("DB_USER"), os.Getenv("DB_PASS"), os.Getenv("DB_HOST"), os.Getenv("DB_NAME"))
+	// Build DSN with ProxySQL parameters
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?timeout=10s&readTimeout=30s&writeTimeout=30s&parseTime=true",
+		os.Getenv("DB_USER"),
+		os.Getenv("DB_PASSWORD"),
+		os.Getenv("DB_HOST"),
+		os.Getenv("DB_PORT"),
+		os.Getenv("DB_NAME"))
 
 	var err error
 	DB, err = sql.Open("mysql", dsn)
 	if err != nil {
-		log.Fatalf("Failed to connect to MySQL: %v", err)
+		log.Fatalf("Failed to connect to MySQL via ProxySQL: %v", err)
 	}
 
-	// DB.SetMaxOpenConns(12)     // tổng số kết nối tối đa (active hoặc idle)
-	// DB.SetMaxIdleConns(6)      // số kết nối nhàn rỗi (idle) giữ lại
-	// DB.SetConnMaxLifetime(300) // lifetime (seconds) của mỗi connection, tránh timeout ngẫu nhiên
+	// Set connection pool parameters optimized for ProxySQL
+	DB.SetMaxOpenConns(100)
+	DB.SetMaxIdleConns(20)
+	DB.SetConnMaxLifetime(5 * time.Minute)
+	DB.SetConnMaxIdleTime(3 * time.Minute)
 
+	// Verify connection
 	if err = DB.Ping(); err != nil {
-		log.Fatalf("Database unreachable: %v", err)
+		log.Fatalf("Database unreachable through ProxySQL: %v", err)
 	}
 
-	log.Println("Connected to MySQL successfully")
+	log.Println("Connected to MySQL via ProxySQL successfully")
+}
+
+// CloseDB closes the database connection
+func CloseDB() {
+	if DB != nil {
+		DB.Close()
+		log.Println("Database connection closed")
+	}
 }

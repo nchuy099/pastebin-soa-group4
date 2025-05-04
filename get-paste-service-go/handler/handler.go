@@ -56,6 +56,17 @@ func GetPasteHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Param
 
 	writePasteView(pasteID, w)
 
+	location, err := time.LoadLocation("Asia/Bangkok")
+	if err != nil {
+		log.Println("Failed to load timezone:", err)
+		location = time.FixedZone("GMT+7", 7*3600) // fallback nếu load lỗi
+	}
+
+	if paste.ExpiresAt != nil {
+		t := paste.ExpiresAt.In(location)
+		paste.ExpiresAt = &t
+	}
+
 	respondSuccess(w, "Paste retrieved successfully", paste)
 }
 

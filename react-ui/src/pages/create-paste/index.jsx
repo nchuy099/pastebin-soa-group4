@@ -9,7 +9,7 @@ export default function CreatePaste({ setHeaderTitle }) {
     const [content, setContent] = useState('');
     const [title, setTitle] = useState('');
     const [language, setLanguage] = useState('text');
-    const [expiresIn, setExpiresIn] = useState('60');
+    const [expiresIn, setExpiresIn] = useState('');
     const [visibility, setVisibility] = useState('PUBLIC');
     const [error, setError] = useState('');
 
@@ -32,13 +32,13 @@ export default function CreatePaste({ setHeaderTitle }) {
 
     const expiryOptions = [
         { label: 'No Expiry', value: '' },
-        { label: '5 Minutes', value: '300' },
-        { label: '10 Minutes', value: '600' },
-        { label: '30 Minutes', value: '1800' },
-        { label: '1 Hour', value: '3600' },
-        { label: '2 Hours', value: '7200' },
-        { label: '6 Hours', value: '21600' },
-        { label: '12 Hours', value: '43200' },
+        { label: '5 Minutes', value: '5' },
+        { label: '10 Minutes', value: '10' },
+        { label: '30 Minutes', value: '30' },
+        { label: '1 Hour', value: '60' },
+        { label: '2 Hours', value: '120' },
+        { label: '6 Hours', value: '3600' },
+        { label: '12 Hours', value: '7200' },
         { label: '1 Day', value: '86400' },
         { label: '2 Days', value: '172800' },
         { label: '1 Week', value: '604800' },

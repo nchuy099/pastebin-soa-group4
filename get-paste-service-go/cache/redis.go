@@ -29,9 +29,15 @@ func InitRedis() {
 	redisPassword := os.Getenv("REDIS_PASSWORD")
 
 	RedisClient = redis.NewClient(&redis.Options{
-		Addr:     redisHost,
-		Password: redisPassword,
-		DB:       0,
+		Addr:         redisHost,
+		Password:     redisPassword,
+		DB:           0,
+		PoolSize:     500,
+		MinIdleConns: 100,
+		DialTimeout:  5 * time.Second,
+		ReadTimeout:  3 * time.Second,
+		WriteTimeout: 3 * time.Second,
+		PoolTimeout:  4 * time.Second,
 	})
 
 	// TTL setting from env in seconds
