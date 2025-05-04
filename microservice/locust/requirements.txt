@@ -1,0 +1,6 @@
+locust==2.33.2
+<<<<<<< HEAD
+beautifulsoup4==4.12.3
+lxml==5.3.0
+=======
+>>>>>>> origin/merge-ms

@@ -1,0 +1,19 @@
+# Binary output
+create-paste-service-go
+main
+
+# Local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+
+# Service-specific logs
+logs/
+*.log
+
+# Build artifacts (if any)
+/dist/
+/build/ 
