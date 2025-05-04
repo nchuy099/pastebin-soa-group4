@@ -3,7 +3,7 @@ package router
 import (
 	"net/http"
 
-	"get-stats-service-go/handler"
+	"get-stats-service/handler"
 
 	"github.com/julienschmidt/httprouter"
 )
