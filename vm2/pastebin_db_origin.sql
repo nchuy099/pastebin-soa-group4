@@ -22,8 +22,8 @@ CREATE TABLE paste (
   expires_at TIMESTAMP DEFAULT NULL,
   visibility ENUM('PUBLIC','UNLISTED') DEFAULT 'PUBLIC',
   PRIMARY KEY (id),
-  INDEX idx_expires_at ON paste (expires_at),
-  INDEX idx_expires_at_id ON paste (expires_at, id)
+  INDEX idx_expires_at paste (expires_at),
+  INDEX idx_expires_at_id paste (expires_at, id)
 );
 
 -- ========================================
