@@ -1,0 +1,8 @@
+@media (min-width: 768px) {
+    .sidebar-col {
+        width: 20% !important;
+    }
+    .main-col {
+        width: 80% !important;
+    }
+}

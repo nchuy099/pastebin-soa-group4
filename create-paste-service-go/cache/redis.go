@@ -32,9 +32,15 @@ func InitRedis() error {
 	}
 
 	RedisClient = redis.NewClient(&redis.Options{
-		Addr:     redisHost,
-		Password: redisPassword,
-		DB:       0,
+		Addr:         redisHost,
+		Password:     redisPassword,
+		DB:           0,
+		PoolSize:     100,
+		MinIdleConns: 20,
+		DialTimeout:  5 * time.Second,
+		ReadTimeout:  3 * time.Second,
+		WriteTimeout: 3 * time.Second,
+		PoolTimeout:  4 * time.Second,
 	})
 
 	// Get TTL from environment in seconds

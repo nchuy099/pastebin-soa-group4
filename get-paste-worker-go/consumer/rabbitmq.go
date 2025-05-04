@@ -9,12 +9,9 @@ import (
 )
 
 const (
-	// QueueName is the name of the queue for view updates
-	QueueName = "view_updates_queue"
-	// ExchangeName is the name of the exchange
-	ExchangeName = "view_updates"
-	// RoutingKey is the routing key for view updates
-	RoutingKey = "view.update"
+	ExchangeName = "view_exchange"
+	QueueName    = "view_queue"
+	RoutingKey   = "view.add"
 )
 
 var (

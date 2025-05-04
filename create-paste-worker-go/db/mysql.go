@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -12,30 +13,40 @@ import (
 // DB is the global database connection
 var DB *sql.DB
 
-// InitDB initializes the database connection
+// InitDB initializes the database connection with ProxySQL configuration
 func InitDB() {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?parseTime=true",
-		os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_HOST"), os.Getenv("DB_NAME"))
+	// Build DSN with ProxySQL parameters
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?timeout=10s&readTimeout=30s&writeTimeout=30s&parseTime=true",
+		os.Getenv("DB_USER"),
+		os.Getenv("DB_PASSWORD"),
+		os.Getenv("DB_HOST"),
+		os.Getenv("DB_PORT"),
+		os.Getenv("DB_NAME"))
 
 	var err error
 	DB, err = sql.Open("mysql", dsn)
 	if err != nil {
-		log.Fatalf("Failed to connect to MySQL: %v", err.Error())
+		log.Fatalf("Failed to connect to MySQL via ProxySQL: %v", err)
 	}
 
-<<<<<<<< HEAD:microservice/create-paste-service-go/db/mysql.go
-	DB.SetMaxOpenConns(200)    // tổng số kết nối tối đa (active hoặc idle)
-	DB.SetMaxIdleConns(80)     // số kết nối nhàn rỗi (idle) giữ lại
-	DB.SetConnMaxLifetime(300) // lifetime (seconds) của mỗi connection, tránh timeout ngẫu nhiên
-========
-	// DB.SetMaxOpenConns(36)     // Maximum number of open connections (active or idle)
-	// DB.SetMaxIdleConns(18)     // Maximum number of idle connections
-	// DB.SetConnMaxLifetime(300) // Maximum lifetime (seconds) of each connection to avoid random timeouts
->>>>>>>> ms-rabbitmq-redis:create-paste-worker-go/db/mysql.go
+	// Set connection pool parameters optimized for ProxySQL
+	DB.SetMaxOpenConns(30)
+	DB.SetMaxIdleConns(15)
+	DB.SetConnMaxLifetime(5 * time.Minute)
+	DB.SetConnMaxIdleTime(3 * time.Minute)
 
+	// Verify connection
 	if err = DB.Ping(); err != nil {
-		log.Fatalf("Database unreachable: %v", err.Error())
+		log.Fatalf("Database unreachable through ProxySQL: %v", err)
 	}
 
-	log.Println("Connected to MySQL successfully")
+	log.Println("Connected to MySQL via ProxySQL successfully")
+}
+
+// CloseDB closes the database connection
+func CloseDB() {
+	if DB != nil {
+		DB.Close()
+		log.Println("Database connection closed")
+	}
 }
