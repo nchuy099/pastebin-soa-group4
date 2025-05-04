@@ -7,7 +7,7 @@ import os
 
 class PastebinUser(HttpUser):
     # Sử dụng API Gateway URL
-    host = os.environ.get("API_GATEWAY_URL", "http://nginx")
+    host = os.environ.get("API_GATEWAY_URL", "http://35.240.195.101/")
     wait_time = between(1, 5)
     
 

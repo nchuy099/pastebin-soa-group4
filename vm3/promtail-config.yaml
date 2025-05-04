@@ -1,0 +1,22 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://127.0.0.1:3100/loki/api/v1/push
+    batchwait: 3s         
+    batchsize: 1048576   
+
+scrape_configs:
+  - job_name: docker-logs
+    pipeline_stages:
+      - docker: {}  # Tự động giải mã JSON log
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: pastebin
+          __path__: /var/lib/docker/containers/*/*.log
