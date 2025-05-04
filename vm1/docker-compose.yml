@@ -118,7 +118,7 @@ services:
       - DB_USER=proxysql_user
       - DB_PASSWORD=proxysql_password
       - DB_NAME=pastebin
-      - REDIS_HOST=redis:6379
+      - REDIS_HOST=127.0.0.1:6379
       - REDIS_PASSWORD=
       - REDIS_CACHE_PASTE_TTL_SECONDS=180
       - RABBITMQ_URL=amqp://guest:guest@127.0.0.1:5672/
